@@ -4,7 +4,7 @@ setup(
     name             = 'shamirs',
     version          = '0.1.0.0',
     packages         = ['shamirs',],
-    install_requires = ['egcd', 'lagrange',],
+    install_requires = ['lagrange',],
     license          = 'MIT',
     url              = 'https://github.com/lapets/lagrange',
     author           = 'Andrei Lapets',

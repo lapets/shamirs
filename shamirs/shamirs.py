@@ -6,6 +6,7 @@ Sharing algorithm.
 
 """
 
+from random import randint
 from lagrange import interpolate
 import doctest
 
@@ -35,6 +36,11 @@ def share(value, parties, prime, coefficients = None):
 def build(shares, prime):
     """
     Turns a list of shares back into the corresponding value.
+    
+    >>> build(share(5, 3, 17), 17)
+    5
+    >>> build(share(123, 12, 15485867), 15485867)
+    123
     """
     return interpolate(shares, prime)
 
