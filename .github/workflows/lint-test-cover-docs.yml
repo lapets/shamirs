@@ -1,0 +1,33 @@
+name: lint-test-cover-docs
+on:
+  push
+jobs:
+  lint_test_cover_docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9', '3.10']
+    name: "Python ${{ matrix.python-version }}"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Python.
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: Lint and test module.
+        run: |
+          pip install -U .[lint,test]
+          python -m pylint shamirs # Check against linting rules.
+          python -m pytest # Run tests.
+      - name: Publish coverage results.
+        run: |
+          pip install -U .[coveralls]
+          python -m coveralls --service=github # Submit to coveralls.
+        if: matrix.python-version == '3.8'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test auto-generation of documentation.
+        run: |
+          pip install -U .[docs]
+          cd docs && sphinx-apidoc -f -E --templatedir=_templates -o _source .. ../setup.py && make html && cd ..

@@ -4,9 +4,19 @@ shamirs
 
 Python library with a minimal native implementation of Shamir's Secret Sharing algorithm.
 
-.. image:: https://badge.fury.io/py/shamirs.svg
+|pypi| |actions| |coveralls|
+
+.. |pypi| image:: https://badge.fury.io/py/shamirs.svg
    :target: https://badge.fury.io/py/shamirs
    :alt: PyPI version and link.
+
+.. |actions| image:: https://github.com/lapets/shamirs/workflows/lint-test-cover-docs/badge.svg
+   :target: https://github.com/lapets/shamirs/actions/workflows/lint-test-cover-docs.yml
+   :alt: GitHub Actions status.
+
+.. |coveralls| image:: https://coveralls.io/repos/github/lapets/shamirs/badge.svg?branch=main
+   :target: https://coveralls.io/github/lapets/shamirs?branch=main
+   :alt: Coveralls test coverage summary.
 
 Purpose
 -------
