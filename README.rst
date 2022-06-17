@@ -31,3 +31,10 @@ The library provides functions for splitting a value into a number of shares acr
     5
     >>> shamirs.build(shamirs.share(123, 12, 15485867), 15485867)
     123
+
+Conventions
+-----------
+Style conventions are enforced using `Pylint <https://www.pylint.org>`__::
+
+    python -m pip install pylint
+    python -m pylint shamirs

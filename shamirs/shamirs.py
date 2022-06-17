@@ -1,15 +1,10 @@
-"""shamirs
-https://github.com/lapets/shamirs
-
+"""
 Python library with a minimal native implementation of Shamir's Secret
 Sharing algorithm.
-
 """
-
+import doctest
 from random import randint
 from lagrange import interpolate
-import doctest
-
 
 def share(value, parties, prime, coefficients = None):
     """
@@ -32,11 +27,10 @@ def share(value, parties, prime, coefficients = None):
 
     return shares
 
-
 def build(shares, prime):
     """
     Turns a list of shares back into the corresponding value.
-    
+
     >>> build(share(5, 3, 17), 17)
     5
     >>> build(share(123, 12, 15485867), 15485867)
@@ -44,6 +38,5 @@ def build(shares, prime):
     """
     return interpolate(shares, prime)
 
-
-if __name__ == "__main__": 
+if __name__ == "__main__":
     doctest.testmod()
