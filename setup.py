@@ -14,6 +14,27 @@ setup(
     install_requires=[
         'lagrange~=1.0',
     ],
+    extras_require={
+        'docs': [
+            'sphinx~=4.2.0',
+            'sphinx-rtd-theme~=1.0.0'
+        ],
+        'test': [
+            'pytest~=7.0',
+            'pytest-cov~=3.0'
+        ],
+        'lint': [
+            'pylint~=2.14.0'
+        ],
+        'coveralls': [
+            'coveralls~=3.3.1'
+        ],
+        'publish': [
+            'setuptools~=62.0',
+            'wheel~=0.37',
+            'twine~=4.0'
+        ]
+    },
     license='MIT',
     url='https://github.com/lapets/shamirs',
     author='Andrei Lapets',
