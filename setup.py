@@ -15,7 +15,7 @@ setup(
         'lagrange~=1.0',
     ],
     license='MIT',
-    url='https://github.com/lapets/lagrange',
+    url='https://github.com/lapets/shamirs',
     author='Andrei Lapets',
     author_email='a@lapets.io',
     description='Minimal pure-Python implementation of Shamir\'s Secret Sharing scheme.',

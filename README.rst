@@ -57,3 +57,26 @@ Style conventions are enforced using `Pylint <https://www.pylint.org>`__::
 
     python -m pip install pylint
     python -m pylint shamirs
+
+Contributions
+-------------
+In order to contribute to the source code, open an issue or submit a pull request on the `GitHub page <https://github.com/lapets/shamirs>`__ for this library.
+
+Versioning
+----------
+Beginning with version 0.2.0, the version number format for this library and the changes to the library associated with version number increments conform with `Semantic Versioning 2.0.0 <https://semver.org/#semantic-versioning-200>`__.
+
+Publishing
+----------
+This library can be published as a `package on PyPI <https://pypi.org/project/shamirs>`__ by a package maintainer. First, install the dependencies required for packaging and publishing::
+
+    python -m pip install wheel twine
+
+Remove any old build/distribution files. Then, package the source into a distribution archive using the `wheel <https://pypi.org/project/wheel>`__ package::
+
+    rm -rf dist *.egg-info
+    python setup.py sdist bdist_wheel
+
+Finally, upload the package distribution archive to `PyPI <https://pypi.org>`__ using the `twine <https://pypi.org/project/twine>`__ package::
+
+    python -m twine upload dist/*
