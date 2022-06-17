@@ -11,6 +11,4 @@ setup(
     author_email     = 'a@lapets.io',
     description      = 'Python library with a minimal native implementation of Shamir\'s Secret Sharing algorithm.',
     long_description = open('README.rst').read(),
-    test_suite       = 'nose.collector',
-    tests_require    = ['nose'],
 )

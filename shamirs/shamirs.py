@@ -13,17 +13,19 @@ def share(value, parties, prime, coefficients = None):
     """
     shares = {}
     threshold = parties - 1
+
+    # Use random polynomial coefficients if none were supplied.
     if coefficients is None:
-        # Random polynomial coefficients.
-        polynomial = [value] + [randint(0,prime-1) for _ in range(1,threshold)]
-    else:
-        polynomial = [value] + coefficients
+        coefficients = [randint(0, prime - 1) for _ in range(1, threshold)]
+
+    # Add the base coefficient.
+    coefficients = [value] + coefficients
 
     # Compute each share such that shares[i] = f(i).
     for i in range(1, parties+1):
-        shares[i] = polynomial[0]
-        for j in range(1, len(polynomial)):
-            shares[i] = (shares[i] + polynomial[j] * pow(i,j)) % prime
+        shares[i] = coefficients[0]
+        for j in range(1, len(coefficients)):
+            shares[i] = (shares[i] + coefficients[j] * pow(i,j)) % prime
 
     return shares
 
@@ -38,5 +40,5 @@ def build(shares, prime):
     """
     return interpolate(shares, prime)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     doctest.testmod()
