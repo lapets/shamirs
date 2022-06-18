@@ -24,7 +24,11 @@ Minimal pure-Python implementation of Shamir's Secret Sharing scheme.
 
 Purpose
 -------
-The library provides functions for computing secret shares given an integer input value, as well as for reassembling an integer from its corresponding shares using Lagrange interpolation over finite fields (according to `Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`__).
+
+.. |secrets_token_bytes| replace:: ``secrets.token_bytes``
+.. _secrets_token_bytes: https://docs.python.org/3/library/secrets.html#secrets.token_bytes
+
+This library provides functions and data structures for computing secret shares given an integer input value and for reassembling an integer from its corresponding secret shares via Lagrange interpolation over finite fields (according to `Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`__). The built-in |secrets_token_bytes|_ function and rejection sampling are used to generate random coefficients. The `lagrange <https://pypi.org/project/lagrange>`__ library is used for Lagrange interpolation.
 
 Installation and Usage
 ----------------------
@@ -56,7 +60,7 @@ Documentation
 ^^^^^^^^^^^^^
 .. include:: toc.rst
 
-The documentation can be generated automatically from the source files using `Sphinx <https://www.sphinx-doc.org/>`__::
+The documentation can be generated automatically from the source files using `Sphinx <https://www.sphinx-doc.org>`__::
 
     python -m pip install .[docs]
     cd docs

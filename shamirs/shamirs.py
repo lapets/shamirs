@@ -2,15 +2,26 @@
 Minimal pure-Python implementation of Shamir's Secret Sharing scheme.
 """
 import doctest
-from random import randint
+from secrets import token_bytes
 from lagrange import interpolate
+
+def _randint(bound):
+    """
+    Generate a random integer according to an approximately uniform distribution
+    via rejection sampling.
+    """
+    length = 1 + (bound.bit_length() // 8)
+    value = int.from_bytes(token_bytes(length), 'little')
+    while value >= bound:
+        value = int.from_bytes(token_bytes(length), 'little')
+    return value
 
 def share(value, parties, prime, coefficients = None):
     """
-    Transform an integer into a number of shares given a prime modulus and a
+    Transforms an integer into a number of shares given a prime modulus and a
     number of parties.
 
-    >>> len(share(1, 3, 17))
+    >>> len(share(1, 3, 31))
     3
     >>> len(share(123, 10, 41))
     10
@@ -20,7 +31,7 @@ def share(value, parties, prime, coefficients = None):
 
     # Use random polynomial coefficients if none were supplied.
     if coefficients is None:
-        coefficients = [randint(0, prime - 1) for _ in range(1, threshold)]
+        coefficients = [_randint(prime - 1) for _ in range(1, threshold)]
 
     # Add the base coefficient.
     coefficients = [value] + coefficients
@@ -37,7 +48,7 @@ def build(shares, prime):
     """
     Reassemble an integer value from a collection of secret shares.
 
-    >>> build(share(5, 3, 17), 17)
+    >>> build(share(5, 3, 31), 31)
     5
     >>> build(share(123, 12, 15485867), 15485867)
     123
