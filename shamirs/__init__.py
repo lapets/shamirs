@@ -1,2 +1,2 @@
-"""Gives users direct access to classes and functions."""
-from shamirs.shamirs import share, build
+"""Gives users direct access to class and functions."""
+from shamirs.shamirs import share, shares, interpolate

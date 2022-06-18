@@ -42,13 +42,14 @@ The library can be imported in the usual way::
 
 Examples
 ^^^^^^^^
-The library provides functions for splitting a value into a number of shares across a number of parties, and for reassembling those shares back into the value they represent::
+The library provides functions for splitting a positive integer value into a number of secret shares and for reassembling those shares back into the value they represent::
 
-    >>> shares = shamirs.share(5, 3, 17)
-    >>> shamirs.build(shares, 17)
-    5
-    >>> shamirs.build(shamirs.share(123, 12, 15485867), 15485867)
+    >>> ss = shamirs.shares(123, 3)
+    >>> shamirs.interpolate(ss)
     123
+    >>> ss = shamirs.shares(456, 77, prime=15485867)
+    >>> shamirs.interpolate(ss, prime=15485867)
+    456
 
 Development
 -----------
