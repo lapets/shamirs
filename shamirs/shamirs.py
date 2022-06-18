@@ -1,6 +1,5 @@
 """
-Python library with a minimal native implementation of Shamir's Secret
-Sharing algorithm.
+Minimal pure-Python implementation of Shamir's Secret Sharing scheme.
 """
 import doctest
 from random import randint
@@ -8,8 +7,13 @@ from lagrange import interpolate
 
 def share(value, parties, prime, coefficients = None):
     """
-    Turns an integer into a number of shares given a modulus and a
+    Transform an integer into a number of shares given a prime modulus and a
     number of parties.
+
+    >>> len(share(1, 3, 17))
+    3
+    >>> len(share(123, 10, 41))
+    10
     """
     shares = {}
     threshold = parties - 1
@@ -25,13 +29,13 @@ def share(value, parties, prime, coefficients = None):
     for i in range(1, parties+1):
         shares[i] = coefficients[0]
         for j in range(1, len(coefficients)):
-            shares[i] = (shares[i] + coefficients[j] * pow(i,j)) % prime
+            shares[i] = (shares[i] + coefficients[j] * pow(i, j)) % prime
 
     return shares
 
 def build(shares, prime):
     """
-    Turns a list of shares back into the corresponding value.
+    Reassemble an integer value from a collection of secret shares.
 
     >>> build(share(5, 3, 17), 17)
     5
