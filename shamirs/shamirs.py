@@ -129,6 +129,10 @@ def shares(value, quantity: int, prime: Optional[int] = None) -> Sequence[share]
     Traceback (most recent call last):
       ...
     ValueError: quantity of shares must be at least 2
+    >>> shares(1, 2**32, 17)
+    Traceback (most recent call last):
+      ...
+    ValueError: quantity of shares must be an integer that can be represented using at most 32 bits
     >>> shares(1, 3, 1)
     Traceback (most recent call last):
       ...
@@ -145,6 +149,11 @@ def shares(value, quantity: int, prime: Optional[int] = None) -> Sequence[share]
 
     if quantity < 2:
         raise ValueError('quantity of shares must be at least 2')
+
+    if quantity >= 2 ** 32:
+        raise ValueError(
+            'quantity of shares must be an integer that can be represented using at most 32 bits'
+        )
 
     if prime is not None:
         if not isinstance(prime, int):
