@@ -10,8 +10,8 @@ Minimal pure-Python implementation of Shamir's Secret Sharing scheme.
    :target: https://badge.fury.io/py/shamirs
    :alt: PyPI version and link.
 
-.. |readthedocs| image:: https://readthedocs.org/projects/egcd/badge/?version=latest
-   :target: https://egcd.readthedocs.io/en/latest/?badge=latest
+.. |readthedocs| image:: https://readthedocs.org/projects/shamirs/badge/?version=latest
+   :target: https://shamirs.readthedocs.io/en/latest/?badge=latest
    :alt: Read the Docs documentation status.
 
 .. |actions| image:: https://github.com/lapets/shamirs/workflows/lint-test-cover-docs/badge.svg
