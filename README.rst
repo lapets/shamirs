@@ -28,7 +28,7 @@ Purpose
 .. |secrets_token_bytes| replace:: ``secrets.token_bytes``
 .. _secrets_token_bytes: https://docs.python.org/3/library/secrets.html#secrets.token_bytes
 
-This library provides functions and data structures for computing secret shares given an integer input value and for reassembling an integer from its corresponding secret shares via Lagrange interpolation over finite fields (according to `Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`__). The built-in |secrets_token_bytes|_ function and rejection sampling are used to generate random coefficients. The `lagrange <https://pypi.org/project/lagrange>`__ library is used for Lagrange interpolation.
+This library provides functions and data structures for computing secret shares given an integer input value and for reassembling an integer from its corresponding secret shares via Lagrange interpolation over finite fields (according to `Shamir's Secret Sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`__). The built-in |secrets_token_bytes|_ function and rejection sampling are used to generate random coefficients. The `lagrange <https://pypi.org/project/lagrange>`__ library is used for Lagrange interpolation.
 
 Installation and Usage
 ----------------------
@@ -89,7 +89,7 @@ In order to contribute to the source code, open an issue or submit a pull reques
 
 Versioning
 ^^^^^^^^^^
-Beginning with version 0.2.0, the version number format for this library and the changes to the library associated with version number increments conform with `Semantic Versioning 2.0.0 <https://semver.org/#semantic-versioning-200>`__.
+Beginning with version 1.0.0, the version number format for this library and the changes to the library associated with version number increments conform with `Semantic Versioning 2.0.0 <https://semver.org/#semantic-versioning-200>`__.
 
 Publishing
 ^^^^^^^^^^

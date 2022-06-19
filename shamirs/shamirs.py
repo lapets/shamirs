@@ -1,9 +1,11 @@
 """
-Minimal pure-Python implementation of Shamir's Secret Sharing scheme.
+Minimal pure-Python implementation of
+`Shamir's Secret Sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`__.
 """
 from __future__ import annotations
 import doctest
 from typing import Union, Optional, Sequence
+from collections.abc import Iterable
 import base64
 import secrets
 import lagrange
@@ -167,21 +169,29 @@ def shares(value, quantity: int, prime: Optional[int] = None) -> Sequence[share]
     for i in range(quantity):
         shares_.append(coefficients[0])
         for j in range(1, len(coefficients)):
-            shares_[i] = share((shares_[i] + coefficients[j] * pow(i + 1, j)) % prime)
+            shares_[i] = (shares_[i] + coefficients[j] * pow(i + 1, j)) % prime
+        shares_[i] = share((shares_[i] * (2 ** 32)) + i)
 
     return shares_
 
-def interpolate(shares: Sequence[share], prime: Optional[int] = None) -> int: # pylint: disable=W0621
+def interpolate(shares: Iterable[share], prime: Optional[int] = None) -> int: # pylint: disable=W0621
     """
-    Reassemble an integer value from a sequence of secret shares. Note that
-    **the secret shares must be ordered in the same order in which they were
-    returned from the invocation of** :obj:`shares`.
+    Reassemble an integer value from a sequence of secret shares using
+    Lagrange interpolation (via the :obj:`~lagrange.lagrange.interpolate` function
+    exported by the `lagrange <https://pypi.org/project/lagrange/>`_ library).
 
     >>> interpolate(shares(5, 3, prime=31), 31)
     5
     >>> interpolate(shares(123, 12, prime=15485867), prime=15485867)
     123
     >>> interpolate(shares(123, 12))
+    123
+
+    The appropriate order for the secret shares is already encoded in the
+    individual :obj:`share` instances (assuming they were created using
+    the :obj:`shares` function). Thus, they can be supplied in any order.
+
+    >>> interpolate(reversed(shares(123, 12)))
     123
 
     Invocations with invalid parameter values raise exceptions.
@@ -199,6 +209,7 @@ def interpolate(shares: Sequence[share], prime: Optional[int] = None) -> int: # 
       ...
     ValueError: prime modulus must be at least 2
     """
+    shares = list(shares) # Store shares for reuse, even if an iterable is supplied.
     if not all (isinstance(s, share) for s in shares):
         raise TypeError('input must contain share objects')
 
@@ -211,7 +222,10 @@ def interpolate(shares: Sequence[share], prime: Optional[int] = None) -> int: # 
     # Use a default prime value if one is not specified.
     prime = (2 ** 127) - 1 if prime is None else prime
 
-    return lagrange.interpolate(shares, prime)
+    return lagrange.interpolate(
+        sorted([(1 + (s % (2 ** 32)), s // (2 ** 32)) for s in shares]),
+        prime
+    )
 
 if __name__ == "__main__": # pragma: no cover
     doctest.testmod()
