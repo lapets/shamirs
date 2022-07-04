@@ -188,12 +188,16 @@ def shares(
 
     # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
     # is ``f``.
-    shares_ = []
-    for i in range(quantity):
-        shares_.append(coefficients[0])
-        for j in range(1, len(coefficients)):
-            shares_[i] = (shares_[i] + coefficients[j] * pow(i + 1, j)) % prime
-        shares_[i] = share((shares_[i] * (2 ** 32)) + i)
+    shares_ = [
+        sum(
+            c_j * i ** j % prime
+            for j, c_j in enumerate(coefficients)
+        ) % prime
+        for i in range(1, quantity+1)
+    ]
+
+    # Embed each shares index (x-coordinate) by shifting right and using the new lowest 32-bits.
+    shares_ = [share((share_ * (2 ** 32)) + i) for i, share_ in enumerate(shares_)]
 
     return shares_
 
