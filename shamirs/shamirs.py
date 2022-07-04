@@ -4,6 +4,7 @@ Minimal pure-Python implementation of
 """
 from __future__ import annotations
 import doctest
+import warnings
 from typing import Union, Optional, Sequence
 from collections.abc import Iterable
 import base64
@@ -140,6 +141,11 @@ def shares(
       ...
     ValueError: prime modulus must be at least 2
 
+    It is allowed to ask for fewer shares than needed to reconstruct, but the library will raise a
+    warning: UserWarning: quantity of shares should be at least the threshold to be reconstructable.
+    >>> len(shares(1, 3, 11, 7))
+    3
+
     One may also ask for a larger set of shares than necessary to later reconstruct.
     >>> len(shares(1, 7, 11, 3))
     7
@@ -171,6 +177,8 @@ def shares(
 
     # Use the maximum threshold if one is not specified.
     threshold = threshold or quantity
+    if threshold > quantity:
+        warnings.warn('quantity of shares should be at least the threshold to be reconstructable')
 
     # Use a default prime value if one is not specified.
     prime = (2 ** 127) - 1 if prime is None else prime

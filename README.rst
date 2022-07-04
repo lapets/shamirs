@@ -72,7 +72,7 @@ Testing and Conventions
 All unit tests are executed and their coverage is measured when using `pytest <https://docs.pytest.org>`__ (see ``setup.cfg`` for configuration details)::
 
     python -m pip install .[test]
-    python -m pytest
+    python -m pytest -W ignore::UserWarning
 
 Alternatively, all unit tests are included in the module itself and can be executed using `doctest <https://docs.python.org/3/library/doctest.html>`__::
 
