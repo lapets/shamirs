@@ -86,7 +86,9 @@ class share(int):
         """
         return base64.standard_b64encode(self.to_bytes()).decode('utf-8')
 
-def shares(value, quantity: int, prime: Optional[int] = None) -> Sequence[share]:
+def shares(
+        value, quantity: int, prime: Optional[int] = None, threshold: Optional[int] = None
+    ) -> Sequence[share]:
     """
     Transforms an integer into the specified number of secret shares, with recovery
     of the original value possible using the returned sequence of secret shares (via
@@ -137,6 +139,10 @@ def shares(value, quantity: int, prime: Optional[int] = None) -> Sequence[share]
     Traceback (most recent call last):
       ...
     ValueError: prime modulus must be at least 2
+
+    One may also ask for a larger set of shares than necessary to later reconstruct.
+    >>> len(shares(1, 7, 11, 3))
+    7
     """
     if not isinstance(value, int):
         raise TypeError('value must be an integer')
@@ -163,14 +169,14 @@ def shares(value, quantity: int, prime: Optional[int] = None) -> Sequence[share]
         if value >= prime:
             raise ValueError('value cannot be greater than the prime modulus')
 
-    # Use the maximum threshold.
-    threshold = quantity - 1
+    # Use the maximum threshold if one is not specified.
+    threshold = threshold or quantity
 
     # Use a default prime value if one is not specified.
     prime = (2 ** 127) - 1 if prime is None else prime
 
     # Add the base coefficient.
-    coefficients = [value] + [_randint(prime - 1) for _ in range(1, threshold)]
+    coefficients = [value] + [_randint(prime - 1) for _ in range(1, threshold-1)]
 
     # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
     # is ``f``.
@@ -183,7 +189,7 @@ def shares(value, quantity: int, prime: Optional[int] = None) -> Sequence[share]
 
     return shares_
 
-def interpolate(shares: Iterable[share], prime: Optional[int] = None) -> int: # pylint: disable=W0621
+def interpolate(shares: Iterable[share], prime: Optional[int] = None, threshold=None) -> int: # pylint: disable=W0621
     """
     Reassemble an integer value from a sequence of secret shares using
     Lagrange interpolation (via the :obj:`~lagrange.lagrange.interpolate` function
@@ -202,6 +208,21 @@ def interpolate(shares: Iterable[share], prime: Optional[int] = None) -> int: # 
 
     >>> interpolate(reversed(shares(123, 12)))
     123
+
+    If the threshold is known to be different than the number of shares,
+    it should be specified as such.  For example, there is a secret, 123,
+    that was shared to twenty parties such that at least twelve of them
+    are needed to collaborate in reconstructing the secret.
+    >>> interpolate(shares(123, 20, 1223, 12)[:12], 1223, 12)  # use the first twelve shares
+    123
+    >>> interpolate(shares(123, 20, 1223, 12)[20-12:], 1223, 12)  # use the last twelve shares
+    123
+    >>> interpolate(shares(123, 20, 1223, 12)[:15], 1223, 12)  # use the first fifteen shares
+    123
+    >>> interpolate(shares(123, 20, 1223, 12)[:11], 1223, 12)  # try to use only eleven shares
+    Traceback (most recent call last):
+      ...
+    ValueError: not enough points for a unique interpolation
 
     Invocations with invalid parameter values raise exceptions.
 
@@ -232,8 +253,9 @@ def interpolate(shares: Iterable[share], prime: Optional[int] = None) -> int: # 
     prime = (2 ** 127) - 1 if prime is None else prime
 
     return lagrange.interpolate(
-        sorted([(1 + (s % (2 ** 32)), s // (2 ** 32)) for s in shares]),
-        prime
+        [(1 + (s % (2 ** 32)), s // (2 ** 32)) for s in shares],
+        prime,
+        (threshold or len(shares))-1
     )
 
 if __name__ == "__main__": # pragma: no cover
