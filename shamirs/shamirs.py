@@ -24,11 +24,11 @@ def _randint(bound: int) -> int:
 
     return value
 
-class share(int):
+class share:
     """
-    Data structure for representing an individual secret share.
-    Normally, the :obj:`shares` function should be used to construct a sequence
-    of :obj:`share` objects.
+    Data structure for representing an individual secret share. Normally, the
+    :obj:`shares` function should be used to construct a sequence of :obj:`share`
+    objects.
 
     >>> isinstance(shares(1, 3, prime=31)[0], share)
     True
@@ -38,19 +38,44 @@ class share(int):
     123
     >>> interpolate(shares(2**100, 100)) == 2**100
     True
+
+    It must be possible to represent the index integer using 32 bits. There is no
+    bound on the size of the value.
+
+    >>> share(4294967296, 123)
+    Traceback (most recent call last):
+      ...
+    ValueError: index must be an integer that can be represented using at most 32 bits
     """
+    def __init__(self: share, index: int, value: int):
+        """
+        Create a share instance according to the supplied parameters.
+        """
+        if index > 4294967295:
+            raise ValueError(
+                'index must be an integer that can be represented using at most 32 bits'
+            )
+
+        self.index = index
+        self.value = value
+
     @staticmethod
     def from_bytes(bs: Union[bytes, bytearray]) -> share:
         """
         Convert a secret share represented as a bytes-like object
         into a :obj:`share` object.
 
-        >>> share.from_bytes(bytes([1, 123]))
-        31489
-        >>> share.from_bytes(share(2**100).to_bytes()) == 2**100
+        >>> s = share.from_bytes(bytes([128, 0, 0, 0, 1, 123]))
+        >>> (s.index, s.value)
+        (128, 31489)
+        >>> s = share.from_bytes(share(1, 2**100).to_bytes())
+        >>> (s.index, s.value) == (1, 2**100)
         True
         """
-        return int.from_bytes(bs, 'little')
+        return share(
+            int.from_bytes(bs[:4], 'little'),
+            int.from_bytes(bs[4:], 'little')
+        )
 
     @staticmethod
     def from_base64(s: str) -> share:
@@ -58,9 +83,11 @@ class share(int):
         Convert a secret share represented as a Base64 encoding of
         a bytes-like object into a :obj:`share` object.
 
-        >>> share.from_base64('HgEA')
-        286
-        >>> share.from_base64(share(2**100).to_base64()) == 2**100
+        >>> s = share.from_base64('ewAAAMgB')
+        >>> (s.index, s.value)
+        (123, 456)
+        >>> s = share.from_base64(share(3, 2**100).to_base64())
+        >>> (s.index, s.value) == (3, 2**100)
         True
         """
         return share.from_bytes(base64.standard_b64decode(s))
@@ -69,20 +96,25 @@ class share(int):
         """
         Return a bytes-like object that encodes this :obj:`share` object.
 
-        >>> share(123).to_bytes().hex()
-        '7b'
-        >>> share.from_bytes(share(2**100).to_bytes()) == 2**100
+        >>> share(123, 456).to_bytes().hex()
+        '7b000000c801'
+        >>> s = share.from_bytes(share(3, 2**100).to_bytes())
+        >>> (s.index, s.value) == (3, 2**100)
         True
         """
-        return int(self).to_bytes((self.bit_length() + 7) // 8, 'little')
+        return (
+            int(self.index).to_bytes(4, 'little') + \
+            int(self.value).to_bytes((self.value.bit_length() + 7) // 8, 'little')
+        )
 
     def to_base64(self: share) -> str:
         """
         Return a Base64 string representation of this :obj:`share` object.
 
-        >>> share(456).to_base64()
-        'yAE='
-        >>> share.from_base64(share(2**100).to_base64()) == 2**100
+        >>> share(123, 456).to_base64()
+        'ewAAAMgB'
+        >>> s = share.from_base64(share(3, 2**100).to_base64())
+        >>> (s.index, s.value) == (3, 2**100)
         True
         """
         return base64.standard_b64encode(self.to_bytes()).decode('utf-8')
@@ -209,11 +241,11 @@ def shares(
             c_j * i ** j % prime
             for j, c_j in enumerate(coefficients)
         ) % prime
-        for i in range(1, quantity+1)
+        for i in range(1, quantity + 1)
     ]
 
     # Embed each shares index (x-coordinate) by shifting right and using the new lowest 32-bits.
-    shares_ = [share((share_ * (2 ** 32)) + i) for i, share_ in enumerate(shares_)]
+    shares_ = [share(index + 1, value) for (index, value) in enumerate(shares_)]
 
     return shares_
 
@@ -292,7 +324,7 @@ def interpolate( # pylint: disable=W0621
     prime = (2 ** 127) - 1 if prime is None else prime
 
     return lagrange.interpolate(
-        [(1 + (s % (2 ** 32)), s // (2 ** 32)) for s in shares],
+        [(s.index, s.value) for s in shares],
         prime,
         (threshold or len(shares)) - 1
     )
