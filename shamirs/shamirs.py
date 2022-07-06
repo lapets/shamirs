@@ -11,6 +11,12 @@ import base64
 import secrets
 import lagrange
 
+MODULUS_DEFAULT = (2 ** 127) - 1
+"""
+Default prime modulus (equivalent to ``(2 ** 127) - 1``) that is used for
+creating secret shares if a prime modulus is not specified explicitly.
+"""
+
 def _randint(bound: int) -> int:
     """
     Generate a random integer according to an approximately uniform distribution
@@ -30,11 +36,11 @@ class share:
     :obj:`shares` function should be used to construct a sequence of :obj:`share`
     objects.
 
-    >>> isinstance(shares(1, 3, prime=31)[0], share)
+    >>> isinstance(shares(1, 3, modulus=31)[0], share)
     True
-    >>> len(shares(1, 3, prime=31))
+    >>> len(shares(1, 3, modulus=31))
     3
-    >>> interpolate(shares(123, 12, prime=15485867), prime=15485867)
+    >>> interpolate(shares(123, 12, modulus=15485867))
     123
     >>> interpolate(shares(2**100, 100)) == 2**100
     True
@@ -47,7 +53,7 @@ class share:
       ...
     ValueError: index must be an integer that can be represented using at most 32 bits
     """
-    def __init__(self: share, index: int, value: int):
+    def __init__(self: share, index: int, value: int, modulus: Optional[int] = MODULUS_DEFAULT):
         """
         Create a share instance according to the supplied parameters.
         """
@@ -58,6 +64,7 @@ class share:
 
         self.index = index
         self.value = value
+        self.modulus = modulus
 
     @staticmethod
     def from_bytes(bs: Union[bytes, bytearray]) -> share:
@@ -65,16 +72,18 @@ class share:
         Convert a secret share represented as a bytes-like object
         into a :obj:`share` object.
 
-        >>> s = share.from_bytes(bytes([128, 0, 0, 0, 1, 123]))
-        >>> (s.index, s.value)
-        (128, 31489)
+        >>> s = share.from_bytes(bytes.fromhex('7b00000002000000c801fd03'))
+        >>> (s.index, s.value, s.modulus)
+        (123, 456, 1021)
         >>> s = share.from_bytes(share(1, 2**100).to_bytes())
         >>> (s.index, s.value) == (1, 2**100)
         True
         """
+        length = int.from_bytes(bs[4: 8], 'little')
         return share(
             int.from_bytes(bs[:4], 'little'),
-            int.from_bytes(bs[4:], 'little')
+            int.from_bytes(bs[8: (8 + length)], 'little'),
+            int.from_bytes(bs[(8 + length):], 'little')
         )
 
     @staticmethod
@@ -83,9 +92,9 @@ class share:
         Convert a secret share represented as a Base64 encoding of
         a bytes-like object into a :obj:`share` object.
 
-        >>> s = share.from_base64('ewAAAMgB')
-        >>> (s.index, s.value)
-        (123, 456)
+        >>> s = share.from_base64('ewAAAAIAAADIAf0D')
+        >>> (s.index, s.value, s.modulus)
+        (123, 456, 1021)
         >>> s = share.from_base64(share(3, 2**100).to_base64())
         >>> (s.index, s.value) == (3, 2**100)
         True
@@ -96,23 +105,26 @@ class share:
         """
         Return a bytes-like object that encodes this :obj:`share` object.
 
-        >>> share(123, 456).to_bytes().hex()
-        '7b000000c801'
+        >>> share(123, 456, 1021).to_bytes().hex()
+        '7b00000002000000c801fd03'
         >>> s = share.from_bytes(share(3, 2**100).to_bytes())
         >>> (s.index, s.value) == (3, 2**100)
         True
         """
+        length = (self.modulus.bit_length() + 7) // 8
         return (
             int(self.index).to_bytes(4, 'little') + \
-            int(self.value).to_bytes((self.value.bit_length() + 7) // 8, 'little')
+            int(length).to_bytes(4, 'little') + \
+            int(self.value).to_bytes(length, 'little') + \
+            int(self.modulus).to_bytes(length, 'little')
         )
 
     def to_base64(self: share) -> str:
         """
         Return a Base64 string representation of this :obj:`share` object.
 
-        >>> share(123, 456).to_base64()
-        'ewAAAMgB'
+        >>> share(123, 456, 1021).to_base64()
+        'ewAAAAIAAADIAf0D'
         >>> s = share.from_base64(share(3, 2**100).to_base64())
         >>> (s.index, s.value) == (3, 2**100)
         True
@@ -122,7 +134,7 @@ class share:
 def shares(
         value: int,
         quantity: int,
-        prime: Optional[int] = None,
+        modulus: Optional[int] = MODULUS_DEFAULT,
         threshold: Optional[int] = None
     ) -> Sequence[share]:
     """
@@ -133,14 +145,14 @@ def shares(
     :param value: Integer value to be split into secret shares.
     :param quantity: Number of secret shares (at least two) to construct
         and return.
-    :param prime: Prime modulus corresponding to the finite field used for
+    :param modulus: Prime modulus corresponding to the finite field used for
         creating secret shares.
     :param threshold: Minimum number of shares that will be required to
         reconstruct a value.
 
-    >>> len(shares(1, 3, prime=31))
+    >>> len(shares(1, 3, modulus=31))
     3
-    >>> len(shares(17, 10, prime=41))
+    >>> len(shares(17, 10, modulus=41))
     10
     >>> len(shares(123, 100))
     100
@@ -148,7 +160,7 @@ def shares(
     Attempts to transform a value that is greater than the supplied prime
     modulus raise an exception.
 
-    >>> shares(256, 3, prime=31)
+    >>> shares(256, 3, modulus=31)
     Traceback (most recent call last):
       ...
     ValueError: value cannot be greater than the prime modulus
@@ -187,13 +199,13 @@ def shares(
     Requesting fewer shares than needed to reconstruct is permitted (but a
     warning is issued).
 
-    >>> len(shares(1, 3, 11, 7))
+    >>> len(shares(1, quantity=3, modulus=11, threshold=7))
     3
 
     Requesting a larger set of shares than is necessary to reconstruct the
     original value is permitted.
 
-    >>> len(shares(1, 7, 11, 3))
+    >>> len(shares(1, quantity=7, modulus=11, threshold=3))
     7
     """
     if not isinstance(value, int):
@@ -213,13 +225,14 @@ def shares(
             'quantity of shares must be an integer that can be represented using at most 32 bits'
         )
 
-    if prime is not None:
-        if not isinstance(prime, int):
-            raise TypeError('prime modulus must be an integer')
-        if prime < 2:
-            raise ValueError('prime modulus must be at least 2')
-        if value >= prime:
-            raise ValueError('value cannot be greater than the prime modulus')
+    if not isinstance(modulus, int):
+        raise TypeError('prime modulus must be an integer')
+
+    if modulus < 2:
+        raise ValueError('prime modulus must be at least 2')
+
+    if value >= modulus:
+        raise ValueError('value cannot be greater than the prime modulus')
 
     # Use the maximum threshold if one is not specified.
     threshold = threshold or quantity
@@ -228,47 +241,36 @@ def shares(
             'quantity of shares should be at least the threshold to be reconstructable'
         )
 
-    # Use a default prime value if one is not specified.
-    prime = (2 ** 127) - 1 if prime is None else prime
-
     # Add the base coefficient.
-    coefficients = [value] + [_randint(prime - 1) for _ in range(1, threshold - 1)]
+    coefficients = [value] + [_randint(modulus - 1) for _ in range(1, threshold - 1)]
 
     # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
     # is ``f``.
     shares_ = [
         sum(
-            c_j * i ** j % prime
+            c_j * i ** j % modulus
             for j, c_j in enumerate(coefficients)
-        ) % prime
+        ) % modulus
         for i in range(1, quantity + 1)
     ]
 
     # Embed each shares index (x-coordinate) by shifting right and using the new lowest 32-bits.
-    shares_ = [share(index + 1, value) for (index, value) in enumerate(shares_)]
+    shares_ = [share(index + 1, value, modulus) for (index, value) in enumerate(shares_)]
 
     return shares_
 
-def interpolate( # pylint: disable=W0621
-        shares: Iterable[share],
-        prime: Optional[int] = None,
-        threshold: int = None
-    ) -> int:
+def interpolate(shares: Iterable[share], threshold: int = None) -> int: # pylint: disable=W0621
     """
     Reassemble an integer value from a sequence of secret shares using
     Lagrange interpolation (via the :obj:`~lagrange.lagrange.interpolate` function
     exported by the `lagrange <https://pypi.org/project/lagrange>`__ library).
 
     :param shares: Iterable of shares from which to reconstruct a value.
-    :param prime: Prime modulus corresponding to the finite field used for
-        interpolation.
     :param threshold: Minimum number of shares that will be required to
         reconstruct a value.
 
-    >>> interpolate(shares(5, 3, prime=31), 31)
+    >>> interpolate(shares(5, 3, modulus=31))
     5
-    >>> interpolate(shares(123, 12, prime=15485867), prime=15485867)
-    123
     >>> interpolate(shares(123, 12))
     123
 
@@ -284,48 +286,39 @@ def interpolate( # pylint: disable=W0621
     was shared with twenty parties such that at least twelve of them
     must collaborate to reconstruct the value.
 
-    >>> interpolate(shares(123, 20, 1223, 12)[:12], 1223, 12) # Use first twelve shares.
+    >>> interpolate(shares(123, 20, 1223, 12)[:12], 12) # Use first twelve shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[20-12:], 1223, 12) # Use last twelve shares.
+    >>> interpolate(shares(123, 20, 1223, 12)[20-12:], 12) # Use last twelve shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[:15], 1223, 12)  # Use first fifteen shares.
+    >>> interpolate(shares(123, 20, 1223, 12)[:15], 12)  # Use first fifteen shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[:11], 1223, 12)  # Try using only eleven shares.
+    >>> interpolate(shares(123, 20, 1223, 12)[:11], 12)  # Try using only eleven shares.
     Traceback (most recent call last):
       ...
     ValueError: not enough points for a unique interpolation
 
     Invocations with invalid parameter values raise exceptions.
 
-    >>> interpolate([1, 2, 3], prime=17)
+    >>> interpolate([1, 2, 3])
     Traceback (most recent call last):
       ...
     TypeError: input must contain share objects
-    >>> interpolate(shares(123, 12), prime='abc')
+    >>> interpolate(shares(123, 3, 1223) + shares(123, 3, 1021))
     Traceback (most recent call last):
       ...
-    TypeError: prime modulus must be an integer
-    >>> interpolate(shares(123, 12), prime=-2)
-    Traceback (most recent call last):
-      ...
-    ValueError: prime modulus must be at least 2
+    ValueError: all shares must have the same modulus
     """
     shares = list(shares) # Store shares for reuse, even if an iterable is supplied.
     if not all (isinstance(s, share) for s in shares):
         raise TypeError('input must contain share objects')
 
-    if prime is not None:
-        if not isinstance(prime, int):
-            raise TypeError('prime modulus must be an integer')
-        if prime < 2:
-            raise ValueError('prime modulus must be at least 2')
-
-    # Use a default prime value if one is not specified.
-    prime = (2 ** 127) - 1 if prime is None else prime
+    moduli = [s.modulus for s in shares]
+    if len(set(moduli)) > 1:
+        raise ValueError('all shares must have the same modulus')
 
     return lagrange.interpolate(
         [(s.index, s.value) for s in shares],
-        prime,
+        moduli[0],
         (threshold or len(shares)) - 1
     )
 

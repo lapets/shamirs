@@ -44,11 +44,13 @@ Examples
 ^^^^^^^^
 The library provides functions for transforming a positive integer value into a number of secret shares and for reassembling those shares back into the value they represent::
 
-    >>> ss = shamirs.shares(123, 3)
+    >>> ss = shamirs.shares(123, quantity=3)
+    >>> len(ss)
+    3
     >>> shamirs.interpolate(ss)
     123
-    >>> ss = shamirs.shares(456, 77, prime=15485867)
-    >>> shamirs.interpolate(ss, prime=15485867)
+    >>> ss = shamirs.shares(456, quantity=20, modulus=15485867, threshold=10)
+    >>> shamirs.interpolate(ss[5:15], threshold=10)
     456
 
 Development
