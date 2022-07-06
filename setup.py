@@ -17,7 +17,8 @@ setup(
     extras_require={
         'docs': [
             'sphinx~=4.2.0',
-            'sphinx-rtd-theme~=1.0.0'
+            'sphinx-rtd-theme~=1.0.0',
+            'sphinx-autodoc-typehints~=1.12.0'
         ],
         'test': [
             'pytest~=7.0',

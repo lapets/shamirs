@@ -88,12 +88,23 @@ class share(int):
         return base64.standard_b64encode(self.to_bytes()).decode('utf-8')
 
 def shares(
-        value, quantity: int, prime: Optional[int] = None, threshold: Optional[int] = None
+        value: int,
+        quantity: int,
+        prime: Optional[int] = None,
+        threshold: Optional[int] = None
     ) -> Sequence[share]:
     """
-    Transforms an integer into the specified number of secret shares, with recovery
-    of the original value possible using the returned sequence of secret shares (via
-    the :obj:`interpolate` function).
+    Transforms an integer value into the specified number of secret shares, with
+    recovery of the original value possible using the returned sequence of secret
+    shares (via the :obj:`interpolate` function).
+
+    :param value: Integer value to be split into secret shares.
+    :param quantity: Number of secret shares (at least two) to construct
+        and return.
+    :param prime: Prime modulus corresponding to the finite field used for
+        creating secret shares.
+    :param threshold: Minimum number of shares that will be required to
+        reconstruct a value.
 
     >>> len(shares(1, 3, prime=31))
     3
@@ -141,12 +152,15 @@ def shares(
       ...
     ValueError: prime modulus must be at least 2
 
-    It is allowed to ask for fewer shares than needed to reconstruct, but the library will raise a
-    warning: UserWarning: quantity of shares should be at least the threshold to be reconstructable.
+    Requesting fewer shares than needed to reconstruct is permitted (but a
+    warning is issued).
+
     >>> len(shares(1, 3, 11, 7))
     3
 
-    One may also ask for a larger set of shares than necessary to later reconstruct.
+    Requesting a larger set of shares than is necessary to reconstruct the
+    original value is permitted.
+
     >>> len(shares(1, 7, 11, 3))
     7
     """
@@ -178,13 +192,15 @@ def shares(
     # Use the maximum threshold if one is not specified.
     threshold = threshold or quantity
     if threshold > quantity:
-        warnings.warn('quantity of shares should be at least the threshold to be reconstructable')
+        warnings.warn(
+            'quantity of shares should be at least the threshold to be reconstructable'
+        )
 
     # Use a default prime value if one is not specified.
     prime = (2 ** 127) - 1 if prime is None else prime
 
     # Add the base coefficient.
-    coefficients = [value] + [_randint(prime - 1) for _ in range(1, threshold-1)]
+    coefficients = [value] + [_randint(prime - 1) for _ in range(1, threshold - 1)]
 
     # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
     # is ``f``.
@@ -201,11 +217,21 @@ def shares(
 
     return shares_
 
-def interpolate(shares: Iterable[share], prime: Optional[int] = None, threshold=None) -> int: # pylint: disable=W0621
+def interpolate( # pylint: disable=W0621
+        shares: Iterable[share],
+        prime: Optional[int] = None,
+        threshold: int = None
+    ) -> int:
     """
     Reassemble an integer value from a sequence of secret shares using
     Lagrange interpolation (via the :obj:`~lagrange.lagrange.interpolate` function
-    exported by the `lagrange <https://pypi.org/project/lagrange/>`_ library).
+    exported by the `lagrange <https://pypi.org/project/lagrange>`__ library).
+
+    :param shares: Iterable of shares from which to reconstruct a value.
+    :param prime: Prime modulus corresponding to the finite field used for
+        interpolation.
+    :param threshold: Minimum number of shares that will be required to
+        reconstruct a value.
 
     >>> interpolate(shares(5, 3, prime=31), 31)
     5
@@ -222,16 +248,17 @@ def interpolate(shares: Iterable[share], prime: Optional[int] = None, threshold=
     123
 
     If the threshold is known to be different than the number of shares,
-    it should be specified as such.  For example, there is a secret, 123,
-    that was shared to twenty parties such that at least twelve of them
-    are needed to collaborate in reconstructing the secret.
-    >>> interpolate(shares(123, 20, 1223, 12)[:12], 1223, 12)  # use the first twelve shares
+    it should be specified as such. In the example below, the value 123
+    was shared with twenty parties such that at least twelve of them
+    must collaborate to reconstruct the value.
+
+    >>> interpolate(shares(123, 20, 1223, 12)[:12], 1223, 12) # Use first twelve shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[20-12:], 1223, 12)  # use the last twelve shares
+    >>> interpolate(shares(123, 20, 1223, 12)[20-12:], 1223, 12) # Use last twelve shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[:15], 1223, 12)  # use the first fifteen shares
+    >>> interpolate(shares(123, 20, 1223, 12)[:15], 1223, 12)  # Use first fifteen shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[:11], 1223, 12)  # try to use only eleven shares
+    >>> interpolate(shares(123, 20, 1223, 12)[:11], 1223, 12)  # Try using only eleven shares.
     Traceback (most recent call last):
       ...
     ValueError: not enough points for a unique interpolation
@@ -267,8 +294,8 @@ def interpolate(shares: Iterable[share], prime: Optional[int] = None, threshold=
     return lagrange.interpolate(
         [(1 + (s % (2 ** 32)), s // (2 ** 32)) for s in shares],
         prime,
-        (threshold or len(shares))-1
+        (threshold or len(shares)) - 1
     )
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == '__main__': # pragma: no cover
     doctest.testmod()

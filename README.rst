@@ -42,7 +42,7 @@ The library can be imported in the usual way::
 
 Examples
 ^^^^^^^^
-The library provides functions for splitting a positive integer value into a number of secret shares and for reassembling those shares back into the value they represent::
+The library provides functions for transforming a positive integer value into a number of secret shares and for reassembling those shares back into the value they represent::
 
     >>> ss = shamirs.shares(123, 3)
     >>> shamirs.interpolate(ss)
