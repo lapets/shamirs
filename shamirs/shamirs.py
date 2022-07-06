@@ -101,6 +101,26 @@ class share:
         """
         return share.from_bytes(base64.standard_b64decode(s))
 
+    def __int__(self: share) -> int:
+        """
+        Return the least nonnegative residue of the field element corresponding
+        to this instance.
+
+        >>> int(share(123, 456, 1021))
+        456
+        """
+        return self.value % self.modulus
+
+    def __len__(self: share) -> int:
+        """
+        Return the modulus corresponding to the field (within which this instance
+        represents an element).
+
+        >>> len(share(123, 456, 1021))
+        1021
+        """
+        return self.modulus
+
     def to_bytes(self: share) -> bytes:
         """
         Return a bytes-like object that encodes this :obj:`share` object.
@@ -130,6 +150,28 @@ class share:
         True
         """
         return base64.standard_b64encode(self.to_bytes()).decode('utf-8')
+
+    def __str__(self: share) -> str:
+        """
+        Return the string representation of this :obj:`share` object.
+
+        >>> str(share(123, 456, 1021))
+        'share(123, 456, 1021)'
+        """
+        return 'share(' + ', '.join([
+            str(self.index),
+            str(self.value),
+            str(self.modulus)
+        ]) + ')'
+
+    def __repr__(self: share) -> str:
+        """
+        Return the string representation of this :obj:`share` object.
+
+        >>> share(123, 456, 1021)
+        share(123, 456, 1021)
+        """
+        return str(self)
 
 def shares(
         value: int,
