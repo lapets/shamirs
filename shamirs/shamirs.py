@@ -101,6 +101,178 @@ class share:
         """
         return share.from_bytes(base64.standard_b64decode(s))
 
+    def __add__(self: share, other: Union[share, int]) -> share:
+        """
+        Add two secret shares (represented as :obj:`share` objects).
+
+        >>> (r, s, t) = shares(123, 3)
+        >>> (u, v, w) = shares(456, 3)
+        >>> interpolate([r + u, s + v, t + w])
+        579
+
+        The integer constant ``0`` is supported as an input to accommodate the
+        base case required by the built-in :obj:`sum` function.
+
+        >>> share(123, 456, 1021) + 0
+        share(123, 456, 1021)
+        >>> ts = [shares(n, quantity=3) for n in [123, 456, 789]]
+        >>> interpolate([sum(ss) for ss in zip(*ts)])
+        1368
+
+        When secret shares are added, it is not possible to determine
+        whether the sum of the values they represent exceeds the maximum
+        value that can be represented. If the sum does exceed the value,
+        then the value reconstructed from the shares will wrap around.
+        This corresponds to the usual behavior of field elements under
+        addition within a field.
+
+        >>> (a, b) = shares(1020, quantity=2, modulus=1021) # One-byte integer.
+        >>> (c, d) = shares(2, quantity=2, modulus=1021) # One-byte integer.
+        >>> interpolate([a + c, b + d]) == (1020 + 2) % 1021 == 1
+        True
+
+        Any attempt to add secret shares that are represented using
+        different finite fields -- or that have different indices --
+        raises an exception.
+
+        >>> (r, s, t) = shares(2, quantity=3, modulus=5)
+        >>> (u, v, w) = shares(3, quantity=3, modulus=7)
+        >>> r + u
+        Traceback (most recent call last):
+          ...
+        ValueError: shares being added must have the same index and modulus
+        >>> (r, s, t) = shares(2, quantity=3, modulus=5)
+        >>> (u, v, w) = shares(3, quantity=3, modulus=5)
+        >>> r + v
+        Traceback (most recent call last):
+          ...
+        ValueError: shares being added must have the same index and modulus
+
+        The examples below test this addition method for a range of share
+        quantities and addition operation counts.
+
+        >>> for quantity in range(2, 20):
+        ...     for operations in range(2, 20):
+        ...         vs = [
+        ...             int.from_bytes(secrets.token_bytes(2), 'little')
+        ...             for _ in range(operations)
+        ...         ]
+        ...         sss = [shares(v, quantity) for v in vs]
+        ...         assert(interpolate([sum(ss) for ss in zip(*sss)]) == sum(vs))
+        """
+        if isinstance(other, int) and other == 0:
+            return self
+
+        if self.index == other.index and self.modulus == other.modulus:
+            return share(
+                self.index,
+                (self.value + other.value) % self.modulus,
+                self.modulus
+            )
+
+        raise ValueError(
+            'shares being added must have the same index and modulus'
+        )
+
+    def __radd__(self: share, other: Union[share, int]) -> share:
+        """
+        Add two secret shares (represented as :obj:`share` objects).
+
+        >>> (r, s, t) = shares(123, 3)
+        >>> (u, v, w) = shares(456, 3)
+        >>> interpolate([r + u, s + v, t + w])
+        579
+
+        The integer constant ``0`` is supported as an input to accommodate the
+        base case required by the built-in :obj:`sum` function.
+
+        >>> 0 + share(123, 456, 1021)
+        share(123, 456, 1021)
+        >>> ts = [shares(n, quantity=3) for n in [123, 456, 789]]
+        >>> interpolate([sum(ss) for ss in zip(*ts)])
+        1368
+        """
+        if isinstance(other, int) and other == 0:
+            return self
+
+        return other + self # pragma: no cover
+
+    def __mul__(self: share, scalar: int) -> share:
+        """
+        Multiply this secret share by an integer scalar. Note that all
+        secret shares must be multiplied by the same integer scalar in
+        order for the reconstructed value to reflect the correct result.
+
+        >>> (r, s, t) = shares(123, 3)
+        >>> r = r * 2
+        >>> s = s * 2
+        >>> t = t * 2
+        >>> interpolate([r, s, t])
+        246
+
+        When secret shares are multiplied by a scalar, it is not possible to
+        determine whether the result exceeds the range of values that can be
+        represented. If the result does fall outside the range, then the value
+        reconstructed from the shares will wrap around. This corresponds to
+        the usual behavior of field elements under scalar multiplication
+        within a field.
+
+        >>> (s, t) = shares(512, quantity=2, modulus=1021)
+        >>> s = s * 2
+        >>> t = t * 2
+        >>> interpolate([s, t]) == (512 * 2) % 1021 == 3
+        True
+
+        The scalar argument must be a nonnegative integer.
+
+        >>> (r, s, t) = shares(123, 3)
+        >>> s = s * 2.0
+        Traceback (most recent call last):
+          ...
+        TypeError: scalar must be an integer
+        >>> (r, s, t) = shares(123, 3)
+        >>> s = s * -2
+        Traceback (most recent call last):
+          ...
+        ValueError: scalar must be a nonnegative integer
+
+        The examples below test this scalar multiplication method for a range
+        of share quantities and a number of random scalar values.
+
+        >>> for quantity in range(2, 20):
+        ...     for _ in range(100):
+        ...         v = int.from_bytes(secrets.token_bytes(2), 'little')
+        ...         c = int.from_bytes(secrets.token_bytes(1), 'little')
+        ...         ss = shares(v, quantity)
+        ...         assert(interpolate([c * s for s in ss]) == c * v)
+        """
+        if not isinstance(scalar, int):
+            raise TypeError('scalar must be an integer')
+
+        if scalar < 0:
+            raise ValueError('scalar must be a nonnegative integer')
+
+        return share(
+            self.index,
+            (self.value * scalar) % self.modulus,
+            self.modulus
+        )
+
+    def __rmul__(self: share, scalar: int) -> share:
+        """
+        Multiply this secret share by an integer scalar. Note that all
+        secret shares must be multiplied by the same integer scalar in
+        order for the reconstructed value to reflect the correct result.
+
+        >>> (r, s, t) = shares(123, 3)
+        >>> r = r * 2
+        >>> s = s * 2
+        >>> t = t * 2
+        >>> interpolate([r, s, t])
+        246
+        """
+        return self * scalar
+
     def __int__(self: share) -> int:
         """
         Return the least nonnegative residue of the field element corresponding

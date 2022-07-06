@@ -53,6 +53,19 @@ The library provides functions for transforming a positive integer value into a 
     >>> shamirs.interpolate(ss[5:15], threshold=10)
     456
 
+Addition of shares and multiplication of shares by a scalar are both supported::
+
+    >>> (r, s, t) = shamirs.shares(123, 3)
+    >>> (u, v, w) = shamirs.shares(456, 3)
+    >>> shamirs.interpolate([r + u, s + v, t + w])
+    579
+    >>> (r, s, t) = shamirs.shares(123, 3)
+    >>> r = r * 2
+    >>> s = s * 2
+    >>> t = t * 2
+    >>> shamirs.interpolate([r, s, t])
+    246
+
 Development
 -----------
 All installation and development dependencies are managed using `setuptools <https://pypi.org/project/setuptools>`__ and are fully specified in ``setup.py``. The ``extras_require`` parameter is used to `specify optional requirements <https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#optional-dependencies>`__ for various development tasks. This makes it possible to specify additional options (such as ``docs``, ``lint``, and so on) when performing installation using `pip <https://pypi.org/project/pip>`__::
