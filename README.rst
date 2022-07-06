@@ -42,7 +42,7 @@ The library can be imported in the usual way::
 
 Examples
 ^^^^^^^^
-The library provides functions for transforming a positive integer value into a number of secret shares and for reassembling those shares back into the value they represent::
+The library provides functions for transforming a nonnegative integer value into a number of secret shares and for reassembling those shares back into the value they represent::
 
     >>> ss = shamirs.shares(123, quantity=3)
     >>> len(ss)
@@ -68,23 +68,21 @@ Addition of shares and multiplication of shares by a scalar are both supported::
 
 Development
 -----------
-All installation and development dependencies are managed using `setuptools <https://pypi.org/project/setuptools>`__ and are fully specified in ``setup.py``. The ``extras_require`` parameter is used to `specify optional requirements <https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#optional-dependencies>`__ for various development tasks. This makes it possible to specify additional options (such as ``docs``, ``lint``, and so on) when performing installation using `pip <https://pypi.org/project/pip>`__::
+All installation and development dependencies are fully specified in ``pyproject.toml``. The ``project.optional-dependencies`` object is used to `specify optional requirements <https://peps.python.org/pep-0621>`__ for various development tasks. This makes it possible to specify additional options (such as ``docs``, ``lint``, and so on) when performing installation using `pip <https://pypi.org/project/pip>`__::
 
     python -m pip install .[docs,lint]
 
 Documentation
 ^^^^^^^^^^^^^
-.. include:: toc.rst
-
 The documentation can be generated automatically from the source files using `Sphinx <https://www.sphinx-doc.org>`__::
 
     python -m pip install .[docs]
     cd docs
-    sphinx-apidoc -f -E --templatedir=_templates -o _source .. ../setup.py && make html
+    sphinx-apidoc -f -E --templatedir=_templates -o _source .. && make html
 
 Testing and Conventions
 ^^^^^^^^^^^^^^^^^^^^^^^
-All unit tests are executed and their coverage is measured when using `pytest <https://docs.pytest.org>`__ (see ``setup.cfg`` for configuration details)::
+All unit tests are executed and their coverage is measured when using `pytest <https://docs.pytest.org>`__ (see the ``pyproject.toml`` file for configuration details)::
 
     python -m pip install .[test]
     python -m pytest -W ignore::UserWarning
@@ -112,10 +110,15 @@ This library can be published as a `package on PyPI <https://pypi.org/project/sh
 
     python -m pip install .[publish]
 
+Ensure that the correct version number appears in the ``pyproject.toml`` file and in any links to this package's Read the Docs documentation that exist in this README document. Also ensure that the Read the Docs project for this library has an `automation rule <https://docs.readthedocs.io/en/stable/automation-rules.html>`__ that activates and sets as the default all tagged versions. Create and push a tag for this version (replacing ``?.?.?`` with the version number)::
+
+    git tag ?.?.?
+    git push origin ?.?.?
+
 Remove any old build/distribution files. Then, package the source into a distribution archive using the `wheel <https://pypi.org/project/wheel>`__ package::
 
-    rm -rf dist *.egg-info
-    python setup.py sdist bdist_wheel
+    rm -rf build dist *.egg-info
+    python -m build --sdist --wheel .
 
 Finally, upload the package distribution archive to `PyPI <https://pypi.org>`__ using the `twine <https://pypi.org/project/twine>`__ package::
 

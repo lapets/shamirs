@@ -1,0 +1,53 @@
+[project]
+name = "shamirs"
+version = "2.0.0"
+description = """\
+    Minimal pure-Python implementation of Shamir's Secret \
+    Sharing scheme.\
+    """
+license = {text = "MIT"}
+authors = [
+    {name = "Andrei Lapets"},
+    {email = "a@lapets.io"}
+]
+readme = "README.rst"
+requires-python = ">=3.7"
+dependencies = [
+    "lagrange~=2.0"
+]
+
+[project.urls]
+Repository = "https://github.com/lapets/shamirs"
+Documentation = "https://shamirs.readthedocs.io"
+
+[project.optional-dependencies]
+docs = [
+    "toml~=0.10.2",
+    "sphinx~=4.2.0",
+    "sphinx-rtd-theme~=1.0.0",
+    "sphinx-autodoc-typehints~=1.12.0"
+]
+test = [
+    "pytest~=7.0",
+    "pytest-cov~=3.0"
+]
+lint = [
+    "pylint~=2.14.0"
+]
+coveralls = [
+    "coveralls~=3.3.1"
+]
+publish = [
+    "twine~=4.0"
+]
+
+[build-system]
+requires = [
+    "build~=0.8",
+    "setuptools~=62.0",
+    "wheel~=0.37"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules --ignore=docs --cov=shamirs --cov-report term-missing"
