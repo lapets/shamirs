@@ -1,6 +1,6 @@
 [project]
 name = "shamirs"
-version = "2.0.0"
+version = "2.0.1"
 description = """\
     Minimal pure-Python implementation of Shamir's Secret \
     Sharing scheme.\
@@ -38,14 +38,13 @@ coveralls = [
     "coveralls~=3.3.1"
 ]
 publish = [
+    "build~=0.8",
     "twine~=4.0"
 ]
 
 [build-system]
 requires = [
-    "build~=0.8",
-    "setuptools~=62.0",
-    "wheel~=0.37"
+    "setuptools~=62.0"
 ]
 build-backend = "setuptools.build_meta"
 
