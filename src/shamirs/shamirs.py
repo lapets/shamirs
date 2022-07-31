@@ -473,7 +473,10 @@ def shares(
 
     return shares_
 
-def interpolate(shares: Iterable[share], threshold: int = None) -> int: # pylint: disable=W0621
+def interpolate(
+        shares: Iterable[share], # pylint: disable=redefined-outer-name
+        threshold: int = None
+    ) -> int:
     """
     Reassemble an integer value from a sequence of secret shares using
     Lagrange interpolation (via the :obj:`~lagrange.lagrange.interpolate` function

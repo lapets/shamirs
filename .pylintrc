@@ -81,7 +81,7 @@ persistent=yes
 
 # Minimum Python version to use for version dependent checks. Will default to
 # the version used to run pylint.
-py-version=3.8
+py-version=3.10
 
 # Discover python modules and packages in the file system subtree.
 recursive=no
@@ -167,7 +167,7 @@ argument-naming-style=snake_case
 # Regular expression matching correct argument names. Overrides argument-
 # naming-style. If left empty, argument names will be checked with the set
 # naming style.
-argument-rgx=^(_?)[a-z][a-z0-9]*(((_[a-z0-9]+)*)?)(_?)$
+argument-rgx=^(_?)[a-z][a-z0-9]*(_[a-z0-9]+)*$
 
 # Naming style matching correct attribute names.
 attr-naming-style=snake_case
@@ -210,7 +210,7 @@ class-naming-style=PascalCase
 
 # Regular expression matching correct class names. Overrides class-naming-
 # style. If left empty, class names will be checked with the set naming style.
-class-rgx=^[a-z][a-z0-9]*(((_[a-z0-9]+)*)?)$
+class-rgx=^[a-zA-Z][a-z0-9]*(_[a-z0-9]+)*$
 
 # Naming style matching correct constant names.
 const-naming-style=UPPER_CASE
