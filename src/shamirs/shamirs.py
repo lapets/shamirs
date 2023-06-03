@@ -10,7 +10,7 @@ import base64
 import secrets
 import lagrange
 
-MODULUS_DEFAULT = (2 ** 127) - 1
+_MODULUS_DEFAULT = (2 ** 127) - 1
 """
 Default prime modulus (equivalent to ``(2 ** 127) - 1``) that is used for
 creating secret shares if a prime modulus is not specified explicitly.
@@ -52,7 +52,7 @@ class share:
       ...
     ValueError: index must be an integer that can be represented using at most 32 bits
     """
-    def __init__(self: share, index: int, value: int, modulus: Optional[int] = MODULUS_DEFAULT):
+    def __init__(self: share, index: int, value: int, modulus: Optional[int] = _MODULUS_DEFAULT):
         """
         Create a share instance according to the supplied parameters.
         """
@@ -347,7 +347,7 @@ class share:
 def shares(
         value: int,
         quantity: int,
-        modulus: Optional[int] = MODULUS_DEFAULT,
+        modulus: Optional[int] = _MODULUS_DEFAULT,
         threshold: Optional[int] = None
     ) -> Sequence[share]:
     """

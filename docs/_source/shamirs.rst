@@ -6,3 +6,5 @@ shamirs module
    :members:
    :undoc-members:
    :show-inheritance:
+
+   .. autodata:: _MODULUS_DEFAULT
