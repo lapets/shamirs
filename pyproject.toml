@@ -13,7 +13,7 @@ authors = [
 readme = "README.rst"
 requires-python = ">=3.7"
 dependencies = [
-    "lagrange~=2.0"
+    "lagrange~=2.1"
 ]
 
 [project.urls]
@@ -28,8 +28,8 @@ docs = [
     "sphinx-autodoc-typehints~=1.12.0"
 ]
 test = [
-    "pytest~=7.0",
-    "pytest-cov~=3.0"
+    "pytest~=7.2",
+    "pytest-cov~=4.0"
 ]
 lint = [
     "pylint~=2.17.0"
@@ -38,13 +38,13 @@ coveralls = [
     "coveralls~=3.3.1"
 ]
 publish = [
-    "build~=0.8",
+    "build~=0.10",
     "twine~=4.0"
 ]
 
 [build-system]
 requires = [
-    "setuptools~=62.0"
+    "setuptools~=67.6"
 ]
 build-backend = "setuptools.build_meta"
 
