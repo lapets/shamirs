@@ -5,8 +5,7 @@ Minimal pure-Python implementation of
 from __future__ import annotations
 import doctest
 import warnings
-from typing import Union, Optional, Sequence
-from collections.abc import Iterable
+from typing import Union, Optional, Sequence, Iterable
 import base64
 import secrets
 import lagrange
