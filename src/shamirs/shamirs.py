@@ -456,7 +456,7 @@ def shares(
         )
 
     # Add the base coefficient.
-    coefficients = [value] + [_randint(modulus - 1) for _ in range(1, threshold - 1)]
+    coefficients = [value] + [_randint(modulus - 1) for _ in range(1, threshold)]
 
     # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
     # is ``f``.
@@ -507,12 +507,30 @@ def interpolate(
     123
     >>> interpolate(shares(123, 20, 1223, 12)[20-12:], 12) # Use last twelve shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[:15], 12)  # Use first fifteen shares.
+    >>> interpolate(shares(123, 20, 1223, 12)[:15], 12) # Use first fifteen shares.
     123
-    >>> interpolate(shares(123, 20, 1223, 12)[:11], 12)  # Try using only eleven shares.
+    >>> interpolate(shares(123, 20, 1223, 12)[:11], 12) # Try using only eleven shares.
     Traceback (most recent call last):
       ...
     ValueError: not enough points for a unique interpolation
+
+    Any attempt to interpolate using a threshold value that is smaller than the
+    threshold value originally specified when the shares were created yields an
+    arbitrary output. However, no confirmation is performed (at the time of
+    interpolation) that interpolation is being performed with the correct threshold
+    value.
+
+    >>> 123 != interpolate(shares(123, 20, 2**31 - 1, 12)[:11], 11) # Try using smaller threshold.
+    True
+    >>> 123 != interpolate(shares(123, 20, 2**31 - 1, 2)[:1], 1) # Try using smaller threshold.
+    True
+
+    Any attempt to interpolate using a threshold value that is larger than the
+    threshold value originally specified when the shares were created returns
+    the original secret-shared value.
+
+    >>> interpolate(shares(123, 20, 2**31 - 1, 12)[:13], 13) # Try using larger threshold.
+    123
 
     Invocations with invalid parameter values raise exceptions.
 
