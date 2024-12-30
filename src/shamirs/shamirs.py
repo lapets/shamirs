@@ -1,6 +1,6 @@
 """
 Minimal pure-Python implementation of
-`Shamir's Secret Sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`__.
+`Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing>`__.
 """
 from __future__ import annotations
 import doctest
