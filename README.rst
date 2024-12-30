@@ -2,11 +2,11 @@
 shamirs
 =======
 
-Minimal pure-Python implementation of Shamir's Secret Sharing scheme.
+Minimal pure-Python implementation of `Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing>`__.
 
 |pypi| |readthedocs| |actions| |coveralls|
 
-.. |pypi| image:: https://badge.fury.io/py/shamirs.svg
+.. |pypi| image:: https://badge.fury.io/py/shamirs.svg#
    :target: https://badge.fury.io/py/shamirs
    :alt: PyPI version and link.
 
@@ -14,7 +14,7 @@ Minimal pure-Python implementation of Shamir's Secret Sharing scheme.
    :target: https://shamirs.readthedocs.io/en/latest/?badge=latest
    :alt: Read the Docs documentation status.
 
-.. |actions| image:: https://github.com/lapets/shamirs/workflows/lint-test-cover-docs/badge.svg
+.. |actions| image:: https://github.com/lapets/shamirs/workflows/lint-test-cover-docs/badge.svg#
    :target: https://github.com/lapets/shamirs/actions/workflows/lint-test-cover-docs.yml
    :alt: GitHub Actions status.
 
@@ -28,7 +28,7 @@ Purpose
 .. |secrets_token_bytes| replace:: ``secrets.token_bytes``
 .. _secrets_token_bytes: https://docs.python.org/3/library/secrets.html#secrets.token_bytes
 
-This library provides functions and data structures for computing secret shares given an integer input value and for reassembling an integer from its corresponding secret shares via Lagrange interpolation over finite fields (according to `Shamir's Secret Sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing>`__). The built-in |secrets_token_bytes|_ function and rejection sampling are used to generate random coefficients. The `lagrange <https://pypi.org/project/lagrange>`__ library is used for Lagrange interpolation.
+This library provides functions and data structures for computing secret shares given an integer input value and for reassembling an integer from its corresponding secret shares via Lagrange interpolation over finite fields (according to `Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing>`__). The built-in |secrets_token_bytes|_ function and rejection sampling are used to generate random coefficients. The `lagrange <https://pypi.org/project/lagrange>`__ library is used for Lagrange interpolation.
 
 Installation and Usage
 ----------------------
@@ -80,7 +80,7 @@ All installation and development dependencies are fully specified in ``pyproject
 
 .. code-block:: bash
 
-    python -m pip install .[docs,lint]
+    python -m pip install ".[docs,lint]"
 
 Documentation
 ^^^^^^^^^^^^^
@@ -88,7 +88,7 @@ The documentation can be generated automatically from the source files using `Sp
 
 .. code-block:: bash
 
-    python -m pip install .[docs]
+    python -m pip install ".[docs]"
     cd docs
     sphinx-apidoc -f -E --templatedir=_templates -o _source .. && make html
 
@@ -98,7 +98,7 @@ All unit tests are executed and their coverage is measured when using `pytest <h
 
 .. code-block:: bash
 
-    python -m pip install .[test]
+    python -m pip install ".[test]"
     python -m pytest -W ignore::UserWarning
 
 Alternatively, all unit tests are included in the module itself and can be executed using `doctest <https://docs.python.org/3/library/doctest.html>`__:
@@ -111,7 +111,7 @@ Style conventions are enforced using `Pylint <https://pylint.readthedocs.io>`__:
 
 .. code-block:: bash
 
-    python -m pip install .[lint]
+    python -m pip install ".[lint]"
     python -m pylint src/shamirs
 
 Contributions
@@ -124,28 +124,13 @@ Beginning with version 1.0.0, the version number format for this library and the
 
 Publishing
 ^^^^^^^^^^
-This library can be published as a `package on PyPI <https://pypi.org/project/shamirs>`__ by a package maintainer. First, install the dependencies required for packaging and publishing:
+This library can be published as a `package on PyPI <https://pypi.org/project/shamirs>`__ via the GitHub Actions workflow found in ``.github/workflows/build-publish-sign-release.yml`` that follows the `recommendations found in the Python Packaging User Guide <https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/>`__.
 
-.. code-block:: bash
+Ensure that the correct version number appears in ``pyproject.toml``, and that any links in this README document to the Read the Docs documentation of this package (or its dependencies) have appropriate version numbers. Also ensure that the Read the Docs project for this library has an `automation rule <https://docs.readthedocs.io/en/stable/automation-rules.html>`__ that activates and sets as the default all tagged versions.
 
-    python -m pip install .[publish]
-
-Ensure that the correct version number appears in ``pyproject.toml``, and that any links in this README document to the Read the Docs documentation of this package (or its dependencies) have appropriate version numbers. Also ensure that the Read the Docs project for this library has an `automation rule <https://docs.readthedocs.io/en/stable/automation-rules.html>`__ that activates and sets as the default all tagged versions. Create and push a tag for this version (replacing ``?.?.?`` with the version number):
+To publish the package, create and push a tag for the version being published (replacing ``?.?.?`` with the version number):
 
 .. code-block:: bash
 
     git tag ?.?.?
     git push origin ?.?.?
-
-Remove any old build/distribution files. Then, package the source into a distribution archive:
-
-.. code-block:: bash
-
-    rm -rf build dist src/*.egg-info
-    python -m build --sdist --wheel .
-
-Finally, upload the package distribution archive to `PyPI <https://pypi.org>`__:
-
-.. code-block:: bash
-
-    python -m twine upload dist/*

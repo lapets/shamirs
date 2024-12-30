@@ -1,0 +1,81 @@
+name: build-publish-sign-release
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  call-workflow-lint-test-cover-docs:
+    name: Call linting/testing workflow.
+    uses: ./.github/workflows/lint-test-cover-docs.yml
+    secrets: inherit
+  build:
+    name: Build package.
+    needs:
+      - call-workflow-lint-test-cover-docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python.
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          architecture: x64
+      - name: Install pypa/build.
+        run: python -m pip install .[publish]
+      - name: Build a source tarball and a binary wheel.
+        run: python -m build --sdist --wheel .
+      - name: Store the package distributions.
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+  publish:
+    name: Publish package to PyPI.
+    if: startsWith(github.ref, 'refs/tags/') # Publish on tag pushes.
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/shamirs
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all the package distributions.
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish package to PyPI.
+        uses: pypa/gh-action-pypi-publish@release/v1
+  sign-release:
+    name: Sign package distributions with Sigstore and upload them to a GitHub release.
+    needs:
+      - publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # For GitHub.
+      id-token: write # For Sigstore.
+    steps:
+      - name: Download all the package distributions.
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Sign the package distributions with Sigstore.
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+      - name: Create a GitHub release.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: gh release create '${{ github.ref_name }}' --repo '${{ github.repository }}'
+      - name: Upload package distributions and signatures/certificates to the GitHub release.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload
+          '${{ github.ref_name }}' dist/**
+          --repo '${{ github.repository }}'

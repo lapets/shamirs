@@ -1,9 +1,9 @@
 [project]
 name = "shamirs"
-version = "2.1.0"
+version = "3.0.0"
 description = """\
-    Minimal pure-Python implementation of Shamir's Secret \
-    Sharing scheme.\
+    Minimal pure-Python implementation of Shamir's secret \
+    sharing scheme.\
     """
 license = {text = "MIT"}
 authors = [
@@ -13,7 +13,7 @@ authors = [
 readme = "README.rst"
 requires-python = ">=3.7"
 dependencies = [
-    "lagrange~=2.1"
+    "lagrange~=3.0"
 ]
 
 [project.urls]
@@ -23,19 +23,22 @@ Documentation = "https://shamirs.readthedocs.io"
 [project.optional-dependencies]
 docs = [
     "toml~=0.10.2",
-    "sphinx~=4.2.0",
-    "sphinx-rtd-theme~=1.0.0",
-    "sphinx-autodoc-typehints~=1.12.0"
+    "sphinx~=5.0",
+    "sphinx-rtd-theme~=2.0.0",
+    "sphinx-autodoc-typehints~=1.23.0"
 ]
 test = [
-    "pytest~=7.2",
-    "pytest-cov~=4.0"
+    "pytest~=7.4; python_version < '3.12'",
+    "pytest~=8.2; python_version >= '3.12'",
+    "pytest-cov~=4.1; python_version < '3.12'",
+    "pytest-cov~=5.0; python_version >= '3.12'"
 ]
 lint = [
-    "pylint~=2.17.0"
+    "pylint~=2.17.0; python_version < '3.12'",
+    "pylint~=3.2.0; python_version >= '3.12'"
 ]
 coveralls = [
-    "coveralls~=3.3.1"
+    "coveralls~=4.0"
 ]
 publish = [
     "build~=0.10",
@@ -44,7 +47,7 @@ publish = [
 
 [build-system]
 requires = [
-    "setuptools~=67.6"
+    "setuptools>=68.0"
 ]
 build-backend = "setuptools.build_meta"
 
