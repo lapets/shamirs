@@ -71,6 +71,11 @@ class share:
         Convert a secret share represented as a bytes-like object
         into a :obj:`share` object.
 
+        :param bs: Bytes-like object that is an encoding of a share instance.
+
+        All share information (the index, the value, and the modulus) is assumed
+        to be encoded (as is done by :obj:`to_bytes`).
+
         >>> s = share.from_bytes(bytes.fromhex('7b00000002000000c801fd03'))
         >>> (s.index, s.value, s.modulus)
         (123, 456, 1021)
@@ -91,6 +96,11 @@ class share:
         Convert a secret share represented as a Base64 encoding of
         a bytes-like object into a :obj:`share` object.
 
+        :param s: String that is a Base64 encoding of a share instance.
+
+        All share information (the index, the value, and the modulus) is assumed
+        to be encoded (as is done by :obj:`to_base64`).
+
         >>> s = share.from_base64('ewAAAAIAAADIAf0D')
         >>> (s.index, s.value, s.modulus)
         (123, 456, 1021)
@@ -102,7 +112,12 @@ class share:
 
     def __add__(self: share, other: Union[share, int]) -> share:
         """
-        Add two secret shares (represented as :obj:`share` objects).
+        Add two secret shares (represented as :obj:`share` objects) or a share
+        and an integer.
+
+        :param other: Secret share or integer value to be added to this share.
+
+        Note that share addition must be done consistently across all shares.
 
         >>> (r, s, t) = shares(123, 3)
         >>> (u, v, w) = shares(456, 3)
@@ -175,7 +190,12 @@ class share:
 
     def __radd__(self: share, other: Union[share, int]) -> share:
         """
-        Add two secret shares (represented as :obj:`share` objects).
+        Add two secret shares (represented as :obj:`share` objects) or a share
+        and an integer.
+
+        :param other: Secret share or integer value to be added to this share.
+
+        Note that share addition must be done consistently across all shares.
 
         >>> (r, s, t) = shares(123, 3)
         >>> (u, v, w) = shares(456, 3)
@@ -196,11 +216,33 @@ class share:
 
         return other + self # pragma: no cover
 
+    def __iadd__(self: share, other: Union[share, int]) -> share:
+        """
+        Add a secret share or an integer value to this secret share instance.
+
+        :param other: Secret share or integer value to be added to this share.
+
+        Note that share addition must be done consistently across all shares.
+
+        >>> (r, s, t) = shares(123, 3)
+        >>> (u, v, w) = shares(456, 3)
+        >>> r += u
+        >>> s += v
+        >>> w += t
+        >>> interpolate([r, s, w])
+        579
+        """
+        return other + self # pragma: no cover
+
     def __mul__(self: share, scalar: int) -> share:
         """
-        Multiply this secret share by an integer scalar. Note that all
-        secret shares must be multiplied by the same integer scalar in
-        order for the reconstructed value to reflect the correct result.
+        Multiply this secret share instance by an integer scalar.
+
+        :param scalar: Scalar value by which to multiply this share.
+
+        Note that all secret shares must be multiplied by the same integer
+        scalar in order for the reconstructed value to reflect the correct
+        result.
 
         >>> (r, s, t) = shares(123, 3)
         >>> r = r * 2
@@ -259,14 +301,38 @@ class share:
 
     def __rmul__(self: share, scalar: int) -> share:
         """
-        Multiply this secret share by an integer scalar. Note that all
-        secret shares must be multiplied by the same integer scalar in
-        order for the reconstructed value to reflect the correct result.
+        Multiply this secret share instance by an integer scalar (that appears
+        on the left side of the operator).
+
+        :param scalar: Scalar value by which to multiply this share.
+
+        Note that all secret shares must be multiplied by the same integer
+        scalar in order for the reconstructed value to reflect the correct
+        result.
 
         >>> (r, s, t) = shares(123, 3)
         >>> r = r * 2
         >>> s = s * 2
         >>> t = t * 2
+        >>> interpolate([r, s, t])
+        246
+        """
+        return self * scalar
+
+    def __imul__(self: share, scalar: int) -> share:
+        """
+        Multiply this secret share instance by an integer scalar.
+
+        :param scalar: Scalar value by which to multiply this share.
+
+        Note that all secret shares must be multiplied by the same integer
+        scalar in order for the reconstructed value to reflect the correct
+        result.
+
+        >>> (r, s, t) = shares(123, 3)
+        >>> r *= 2
+        >>> s *= 2
+        >>> t *= 2
         >>> interpolate([r, s, t])
         246
         """
@@ -298,9 +364,11 @@ class share:
 
         >>> share(123, 456, 1021).to_bytes().hex()
         '7b00000002000000c801fd03'
-        >>> s = share.from_bytes(share(3, 2**100).to_bytes())
-        >>> (s.index, s.value) == (3, 2**100)
-        True
+
+        All share information (the index, the value, and the modulus) is encoded.
+
+        >>> share.from_bytes(share(3, 2**100).to_bytes()).index
+        3
         """
         length = (self.modulus.bit_length() + 7) // 8
         return (
@@ -312,12 +380,14 @@ class share:
 
     def to_base64(self: share) -> str:
         """
-        Return a Base64 string representation of this :obj:`share` object.
+        Return a Base64 string encoding of this :obj:`share` object.
 
         >>> share(123, 456, 1021).to_base64()
         'ewAAAAIAAADIAf0D'
-        >>> s = share.from_base64(share(3, 2**100).to_base64())
-        >>> (s.index, s.value) == (3, 2**100)
+
+        All share information (the index, the value, and the modulus) is encoded.
+
+        >>> share.from_base64(share(3, 2**100).to_base64()).value == 2**100
         True
         """
         return base64.standard_b64encode(self.to_bytes()).decode('utf-8')
@@ -363,12 +433,15 @@ def shares(
     :param threshold: Minimum number of shares that will be required to
         reconstruct a value.
 
+    A modulus may be supplied; it is expected (but not checked) that the supplied
+    modulus is a prime number.
+
+    >>> len(shares(123, 100))
+    100
     >>> len(shares(1, 3, modulus=31))
     3
     >>> len(shares(17, 10, modulus=41))
     10
-    >>> len(shares(123, 100))
-    100
 
     Attempts to transform a value that is greater than the supplied prime
     modulus raise an exception.
@@ -485,15 +558,14 @@ def interpolate(
     :param threshold: Minimum number of shares that will be required to
         reconstruct a value.
 
-    >>> interpolate(shares(5, 3, modulus=31))
-    5
-    >>> interpolate(shares(123, 12))
-    123
-
     The appropriate order for the secret shares is already encoded in the
     individual :obj:`share` instances (assuming they were created using
     the :obj:`shares` function). Thus, they can be supplied in any order.
 
+    >>> interpolate(shares(5, 3, modulus=31))
+    5
+    >>> interpolate(shares(123, 12))
+    123
     >>> interpolate(reversed(shares(123, 12)))
     123
 
