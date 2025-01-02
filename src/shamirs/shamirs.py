@@ -16,19 +16,6 @@ Default prime modulus (equivalent to ``(2 ** 127) - 1``) that is used for
 creating secret shares if a prime modulus is not specified explicitly.
 """
 
-def _randint(bound: int) -> int:
-    """
-    Generate a random integer according to an approximately uniform distribution
-    via rejection sampling.
-    """
-    length = 1 + (bound.bit_length() // 8)
-
-    value = int.from_bytes(secrets.token_bytes(length), 'little')
-    while value >= bound:
-        value = int.from_bytes(secrets.token_bytes(length), 'little')
-
-    return value
-
 class share:
     """
     Data structure for representing an individual secret share. Normally, the
@@ -527,14 +514,14 @@ def shares(
             'quantity of shares should be at least the threshold to be reconstructable'
         )
 
-    # Add the base coefficient.
-    coefficients = [value] + [_randint(modulus - 1) for _ in range(1, threshold)]
+    # Create the coefficients.
+    coefficients = [value] + [secrets.randbelow(modulus) for _ in range(1, threshold)]
 
     # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
     # is ``f``.
     shares_ = [
         sum(
-            c_j * i ** j % modulus
+            (c_j * (i ** j)) % modulus
             for j, c_j in enumerate(coefficients)
         ) % modulus
         for i in range(1, quantity + 1)

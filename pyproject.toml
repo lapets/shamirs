@@ -1,6 +1,6 @@
 [project]
 name = "shamirs"
-version = "3.0.2"
+version = "3.0.3"
 description = """\
     Minimal pure-Python implementation of Shamir's secret \
     sharing scheme.\
