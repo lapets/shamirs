@@ -343,16 +343,6 @@ class share:
         """
         return self.value % self.modulus
 
-    def __len__(self: share) -> int:
-        """
-        Return the modulus corresponding to the field (within which this instance
-        represents an element).
-
-        >>> len(share(123, 456, 1021))
-        1021
-        """
-        return self.modulus
-
     def to_bytes(self: share) -> bytes:
         """
         Return a bytes-like object that encodes this :obj:`share` object.
@@ -523,22 +513,27 @@ def shares(
         )
 
     # Create the coefficients.
-    coefficients = [plaintext] + [secrets.randbelow(modulus) for _ in range(1, threshold)]
+    coefficients = (
+        [plaintext] +
+        [secrets.randbelow(modulus) for _ in range(1, threshold)]
+    )
 
-    # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
+    # Compute each share value such that ``values[i] = f(i)`` if the polynomial
     # is ``f``.
-    shares_ = [
-        sum(
-            (c_j * (i ** j)) % modulus
-            for j, c_j in enumerate(coefficients)
-        ) % modulus
-        for i in range(1, quantity + 1)
+    values = []
+    for i in range(1, quantity + 1):
+        value = 0
+        for coefficient in reversed(coefficients):
+            value *= i
+            value += coefficient
+            value %= modulus
+        values.append(value)
+
+    # Include index and (unless specified otherwise) modulus in share objects.
+    return [
+        share(index + 1, value, *([] if compact else [modulus]))
+        for (index, value) in enumerate(values)
     ]
-
-    # Include index and modulus in share instances.
-    shares_ = [share(index + 1, value, modulus) for (index, value) in enumerate(shares_)]
-
-    return shares_
 
 def interpolate(
         shares: Iterable[share], # pylint: disable=redefined-outer-name
