@@ -14,13 +14,21 @@ _MODULUS_DEFAULT = (2 ** 127) - 1
 """
 Default prime modulus (equivalent to ``(2 ** 127) - 1``) that is used for
 creating secret shares if a prime modulus is not specified explicitly.
+
+One advantage of this modulus is that all arithmetic operations involving
+share values and moduli can be restricted to 128-bit integer inputs and
+outputs.
 """
 
 class share:
     """
-    Data structure for representing an individual secret share. Normally, the
-    :obj:`shares` function should be used to construct a sequence of :obj:`share`
-    objects.
+    Data structure for representing an individual secret share.
+
+    >>> share(1, 123, 1009)
+    share(1, 123, 1009)
+
+    Normally, the :obj:`shares` function should be used to construct a sequence
+    of :obj:`share` objects.
 
     >>> isinstance(shares(1, 3, modulus=31)[0], share)
     True
@@ -32,9 +40,9 @@ class share:
     True
 
     It must be possible to represent the index integer using 32 bits. There is no
-    bound on the size of the value.
+    bound on the size of the value or the size of the modulus.
 
-    >>> share(4294967296, 123)
+    >>> share(4294967296, 123, (2**127) - 1)
     Traceback (most recent call last):
       ...
     ValueError: index must be an integer that can be represented using at most 32 bits
@@ -91,8 +99,8 @@ class share:
         >>> s = share.from_base64('ewAAAAIAAADIAf0D')
         >>> (s.index, s.value, s.modulus)
         (123, 456, 1021)
-        >>> s = share.from_base64(share(3, 2**100).to_base64())
-        >>> (s.index, s.value) == (3, 2**100)
+        >>> s = share.from_base64(share(123, 2**100).to_base64())
+        >>> (s.index, s.value) == (123, 2**100)
         True
         """
         return share.from_bytes(base64.standard_b64decode(s))
@@ -100,7 +108,7 @@ class share:
     def __add__(self: share, other: Union[share, int]) -> share:
         """
         Add two secret shares (represented as :obj:`share` objects) or a share
-        and an integer.
+        and the integer zero.
 
         :param other: Secret share or integer value to be added to this share.
 
@@ -122,8 +130,8 @@ class share:
 
         When secret shares are added, it is not possible to determine
         whether the sum of the values they represent exceeds the maximum
-        value that can be represented. If the sum does exceed the value,
-        then the value reconstructed from the shares will wrap around.
+        value that can be represented. If the sum does exceed that value,
+        then the plaintext reconstructed from the shares will wrap around.
         This corresponds to the usual behavior of field elements under
         addition within a field.
 
@@ -178,7 +186,7 @@ class share:
     def __radd__(self: share, other: Union[share, int]) -> share:
         """
         Add two secret shares (represented as :obj:`share` objects) or a share
-        and an integer.
+        and the integer zero.
 
         :param other: Secret share or integer value to be added to this share.
 
@@ -205,7 +213,7 @@ class share:
 
     def __iadd__(self: share, other: Union[share, int]) -> share:
         """
-        Add a secret share or an integer value to this secret share instance.
+        Add a secret share or the integer zero to this secret share instance.
 
         :param other: Secret share or integer value to be added to this share.
 
@@ -225,7 +233,7 @@ class share:
         """
         Multiply this secret share instance by an integer scalar.
 
-        :param scalar: Scalar value by which to multiply this share.
+        :param scalar: Integer scalar by which to multiply this share.
 
         Note that all secret shares must be multiplied by the same integer
         scalar in order for the reconstructed value to reflect the correct
@@ -402,25 +410,25 @@ class share:
         return str(self)
 
 def shares(
-        value: int,
+        plaintext: int,
         quantity: int,
         modulus: Optional[int] = _MODULUS_DEFAULT,
         threshold: Optional[int] = None
     ) -> Sequence[share]:
     """
-    Transforms an integer value into the specified number of secret shares, with
-    recovery of the original value possible using the returned sequence of secret
-    shares (via the :obj:`interpolate` function).
+    Transforms an integer plaintext into the specified number of secret shares,
+    with recovery of the original plaintext possible using the returned sequence
+    of secret shares (via the :obj:`interpolate` function).
 
-    :param value: Integer value to be split into secret shares.
+    :param plaintext: Integer plaintext to be split into secret shares.
     :param quantity: Number of secret shares (at least two) to construct
         and return.
     :param modulus: Prime modulus corresponding to the finite field used for
         creating secret shares.
-    :param threshold: Minimum number of shares that will be required to
-        reconstruct a value.
+    :param threshold: Minimum number of shares that are required to reconstruct
+        a plaintext.
 
-    A modulus may be supplied; it is expected (but not checked) that the supplied
+    A modulus may be supplied; it is **expected but not checked** that the supplied
     modulus is a prime number.
 
     >>> len(shares(123, 100))
@@ -430,20 +438,20 @@ def shares(
     >>> len(shares(17, 10, modulus=41))
     10
 
-    Attempts to transform a value that is greater than the supplied prime
+    Attempts to transform a plaintext that is greater than the supplied prime
     modulus raise an exception.
 
     >>> shares(256, 3, modulus=31)
     Traceback (most recent call last):
       ...
-    ValueError: value cannot be greater than the prime modulus
+    ValueError: plaintext cannot be greater than the prime modulus
 
     Other invocations with invalid parameter values also raise exceptions.
 
     >>> shares('abc', 3, 17)
     Traceback (most recent call last):
       ...
-    TypeError: value must be an integer
+    TypeError: plaintext must be an integer
     >>> shares(1, 'abc', 17)
     Traceback (most recent call last):
       ...
@@ -455,7 +463,7 @@ def shares(
     >>> shares(-2, 3, 17)
     Traceback (most recent call last):
       ...
-    ValueError: value must be a nonnegative integer
+    ValueError: plaintext must be a nonnegative integer
     >>> shares(1, 1, 17)
     Traceback (most recent call last):
       ...
@@ -476,16 +484,16 @@ def shares(
     3
 
     Requesting a larger set of shares than is necessary to reconstruct the
-    original value is permitted.
+    original plaintext is permitted.
 
     >>> len(shares(1, quantity=7, modulus=11, threshold=3))
     7
     """
-    if not isinstance(value, int):
-        raise TypeError('value must be an integer')
+    if not isinstance(plaintext, int):
+        raise TypeError('plaintext must be an integer')
 
-    if value < 0:
-        raise ValueError('value must be a nonnegative integer')
+    if plaintext < 0:
+        raise ValueError('plaintext must be a nonnegative integer')
 
     if not isinstance(quantity, int):
         raise TypeError('quantity of shares must be an integer')
@@ -504,18 +512,18 @@ def shares(
     if modulus < 2:
         raise ValueError('prime modulus must be at least 2')
 
-    if value >= modulus:
-        raise ValueError('value cannot be greater than the prime modulus')
+    if plaintext >= modulus:
+        raise ValueError('plaintext cannot be greater than the prime modulus')
 
     # Use the maximum threshold if one is not specified.
     threshold = threshold or quantity
     if threshold > quantity:
         warnings.warn(
-            'quantity of shares should be at least the threshold to be reconstructable'
+            'quantity of shares should meet or exceed the threshold for reconstruction'
         )
 
     # Create the coefficients.
-    coefficients = [value] + [secrets.randbelow(modulus) for _ in range(1, threshold)]
+    coefficients = [plaintext] + [secrets.randbelow(modulus) for _ in range(1, threshold)]
 
     # Compute each share value such that ``shares[i] = f(i)`` if the polynomial
     # is ``f``.
@@ -527,7 +535,7 @@ def shares(
         for i in range(1, quantity + 1)
     ]
 
-    # Embed each shares index (x-coordinate) by shifting right and using the new lowest 32-bits.
+    # Include index and modulus in share instances.
     shares_ = [share(index + 1, value, modulus) for (index, value) in enumerate(shares_)]
 
     return shares_
@@ -537,13 +545,13 @@ def interpolate(
         threshold: int = None
     ) -> int:
     """
-    Reassemble an integer value from a sequence of secret shares using
+    Calculate an integer plaintext from a sequence of secret shares using
     Lagrange interpolation (via the :obj:`~lagrange.lagrange.interpolate` function
     exported by the `lagrange <https://pypi.org/project/lagrange>`__ library).
 
-    :param shares: Iterable of shares from which to reconstruct a value.
-    :param threshold: Minimum number of shares that will be required to
-        reconstruct a value.
+    :param shares: Iterable of shares from which to reconstruct a plaintext.
+    :param threshold: Minimum number of shares that are required to reconstruct
+        a plaintext.
 
     The appropriate order for the secret shares is already encoded in the
     individual :obj:`share` instances (assuming they were created using
@@ -557,9 +565,9 @@ def interpolate(
     123
 
     If the threshold is known to be different than the number of shares,
-    it should be specified as such. In the example below, the value 123
-    was shared with twenty parties such that at least twelve of them
-    must collaborate to reconstruct the value.
+    it can be specified as such to improve performance. In the example below,
+    the plaintext 123 was shared with twenty parties such that at least twelve
+    of them must collaborate to reconstruct the plaintext.
 
     >>> interpolate(shares(123, 20, 1223, 12)[:12], 12) # Use first twelve shares.
     123
@@ -585,7 +593,7 @@ def interpolate(
 
     Any attempt to interpolate using a threshold value that is larger than the
     threshold value originally specified when the shares were created returns
-    the original secret-shared value.
+    the original secret-shared plaintext.
 
     >>> interpolate(shares(123, 20, 2**31 - 1, 12)[:13], 13) # Try using larger threshold.
     123

@@ -25,10 +25,10 @@ Minimal pure-Python implementation of `Shamir's secret sharing scheme <https://e
 Purpose
 -------
 
-.. |secrets_token_bytes| replace:: ``secrets.token_bytes``
-.. _secrets_token_bytes: https://docs.python.org/3/library/secrets.html#secrets.token_bytes
+.. |secrets_randbelow| replace:: ``secrets.randbelow``
+.. _secrets_randbelow: https://docs.python.org/3/library/secrets.html#secrets.randbelow
 
-This library provides functions and data structures for computing secret shares given an integer input value and for reassembling an integer from its corresponding secret shares via Lagrange interpolation over finite fields (according to `Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing>`__). The built-in |secrets_token_bytes|_ function and rejection sampling are used to generate random coefficients. The `lagrange <https://pypi.org/project/lagrange>`__ library is used for Lagrange interpolation.
+This library provides functions and data structures for computing secret shares given an integer input value and for reassembling an integer from its corresponding secret shares via Lagrange interpolation over finite fields (according to `Shamir's secret sharing scheme <https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing>`__). The built-in |secrets_randbelow|_ function is used to generate random coefficients. The `lagrange <https://pypi.org/project/lagrange>`__ library is used for Lagrange interpolation.
 
 Installation and Usage
 ----------------------
@@ -38,7 +38,7 @@ This library is available as a `package on PyPI <https://pypi.org/project/shamir
 
     python -m pip install shamirs
 
-The library can be imported in the usual way:
+The library can be imported in the usual manner:
 
 .. code-block:: python
 
@@ -46,7 +46,7 @@ The library can be imported in the usual way:
 
 Examples
 ^^^^^^^^
-The library provides functions for transforming a nonnegative integer value into a number of secret shares and for reassembling those shares back into the value they represent:
+The library provides functions for transforming a nonnegative integer plaintext into a number of secret shares and for reassembling those shares back into the plaintext they represent:
 
 .. code-block:: python
 
@@ -59,7 +59,13 @@ The library provides functions for transforming a nonnegative integer value into
     >>> shamirs.interpolate(ss[5:15], threshold=10)
     456
 
-Addition of shares and multiplication of shares by a scalar are both supported:
+.. |special_add| replace:: ``__add__``
+.. _special_add: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.share.__add__
+
+.. |special_imul| replace:: ``__imul__``
+.. _special_imul: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.share.__imul__
+
+Addition of shares and multiplication of shares by a scalar are both supported via special methods (such as |special_add|_ and |special_imul|_) corresponding to `Python's built-in addition and multiplication operators <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`__:
 
 .. code-block:: python
 
@@ -68,9 +74,9 @@ Addition of shares and multiplication of shares by a scalar are both supported:
     >>> shamirs.interpolate([r + u, s + v, t + w])
     579
     >>> (r, s, t) = shamirs.shares(123, 3)
-    >>> r = r * 2
-    >>> s = s * 2
-    >>> t = t * 2
+    >>> r *= 2
+    >>> s *= 2
+    >>> t *= 2
     >>> shamirs.interpolate([r, s, t])
     246
 
