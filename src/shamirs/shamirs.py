@@ -4,7 +4,8 @@ Minimal pure-Python implementation of
 """
 from __future__ import annotations
 import doctest
-from typing import Union, Optional, Sequence, Iterable, Callable
+from typing import Union, Optional
+from collections.abc import Callable, Iterable, Sequence
 import base64
 import secrets
 import lagrange
@@ -524,9 +525,9 @@ class share(tuple):
         length_bits_modulus = self.modulus.bit_length() if len(self) == 3 else 0
         length_bytes = (max(length_bits_value, length_bits_modulus) + 7) // 8
         return (
-            int(self.index).to_bytes(4, 'little') + \
-            int(length_bytes).to_bytes(4, 'little') + \
-            int(self.value).to_bytes(length_bytes, 'little') + \
+            int(self.index).to_bytes(4, 'little') +
+            int(length_bytes).to_bytes(4, 'little') +
+            int(self.value).to_bytes(length_bytes, 'little') +
             (
                 bytes(0)
                 if len(self) == 2 else
@@ -833,8 +834,9 @@ def add(
 
     However, for convenience within scenarios involving only a single index
     (such as when using this function to add shares that do not contain a
-    modulus component because :obj:`__add__` cannot do so), a single share
-    is returned if all supplied arguments are individual shares.
+    modulus component because :obj:`~shamirs.shamirs.share.__add__` cannot do
+    so), a single share is returned if all supplied arguments are individual
+    shares.
 
     >>> add(share(2, 123, 1009), share(2, 456, 1009))
     share(2, 579, 1009)
@@ -976,8 +978,8 @@ def mul(
     This function can operate on both individual shares and on iterables
     thereof. However, for convenience within scenarios involving only a single
     share (such as when using this function to multiply a share that does not
-    contain a modulus component because :obj:`__mul__` cannot do so), a single
-    share is returned.
+    contain a modulus component because :obj:`~shamirs.shamirs.share.__mul__`
+    cannot do so), a single share is returned.
 
     >>> mul(share(1, 123, 1009), scalar=2)
     share(1, 246, 1009)

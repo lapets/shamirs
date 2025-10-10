@@ -12,7 +12,7 @@ jobs:
     name: Build package.
     needs:
       - call-workflow-lint-test-cover-docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - name: Install Python.
@@ -34,7 +34,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') # Publish on tag pushes.
     needs:
       - build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/p/shamirs
@@ -52,7 +52,7 @@ jobs:
     name: Sign package distributions with Sigstore and upload them to a GitHub release.
     needs:
       - publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write # For GitHub.
       id-token: write # For Sigstore.
