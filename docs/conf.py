@@ -69,7 +69,6 @@ autodoc_default_options = {
         '__parameters__',
         '__orig_bases__',
         '__annotations__',
-        '__new__',
         '__init__',
         '__weakref__',
         '__module__',
