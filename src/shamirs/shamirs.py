@@ -4,7 +4,7 @@ Minimal pure-Python implementation of
 """
 from __future__ import annotations
 import doctest
-from typing import Union, Optional, Sequence, Iterable
+from typing import Union, Optional, Sequence, Iterable, Callable
 import base64
 import secrets
 import lagrange
@@ -785,6 +785,309 @@ def shares(
         for (index, value) in enumerate(values)
     ]
 
+def add(
+        *arguments: Union[share, Iterable[share]],
+        modulus: Optional[int] = None,
+        compact: bool = None
+    ) -> Sequence[share]:
+    """
+    Perform addition of the supplied secret share objects (across all indices
+    found within the provided shares).
+
+    :param arguments: Share objects or iterables of share objects.
+    :param modulus: Modulus to use when performing addition.
+    :param compact: Flag to indicate that the modulus should not be included
+        in the returned share objects.
+
+    As share addition is generally straightforward (and more efficient) to
+    perform without invoking a separate function (and all shares should not
+    usually be available to a single party), this function is primarily made
+    available to faciliate succinct testing. Thus, each argument can be either
+    an individual share or an iterable of shares.
+
+    >>> ss = shares(123, 3, modulus=1009)
+    >>> ts = shares(456, 3, modulus=1009)
+    >>> interpolate(add(ss, ts))
+    579
+    >>> interpolate(add([*ss, *ts]))
+    579
+    >>> ss = shares(123, 3, modulus=1009, compact=True)
+    >>> ts = shares(456, 3, modulus=1009, compact=True)
+    >>> interpolate(add([*ss, *ts], modulus=1009, compact=True), modulus=1009)
+    579
+
+    This function adds share values across all indices found in the :obj:`share`
+    objects provided across all arguments. Thus, the particular grouping and
+    order of shares is not consequential.
+
+    >>> ss = shares(123, 3, modulus=1009)
+    >>> ts = shares(456, 3, modulus=1009)
+    >>> interpolate(add(ss + ts))
+    579
+    >>> interpolate(add(ss, ts))
+    579
+    >>> interpolate(add(reversed(ss + ts)))
+    579
+    >>> interpolate(add(list(reversed(ss)) + list(reversed(ts))))
+    579
+
+    However, for convenience within scenarios involving only a single index
+    (such as when using this function to add shares that do not contain a
+    modulus component because :obj:`__add__` cannot do so), a single share
+    is returned if all supplied arguments are individual shares.
+
+    >>> add(share(2, 123, 1009), share(2, 456, 1009))
+    share(2, 579, 1009)
+
+    Similarly, the returned shares do not contain a modulus component if all
+    shares in the arguments also do not contain a modulus component (although
+    an explicit ``compact`` argument value takes precedence over this).
+
+    >>> add(share(2, 123), share(2, 456), modulus=1009)
+    share(2, 579)
+    >>> add(share(2, 123, 1009), share(2, 456, 1009), compact=True)
+    share(2, 579)
+    >>> add(share(2, 123), share(2, 456), modulus=1009, compact=True)
+    share(2, 579)
+    >>> add(share(2, 123), share(2, 456), modulus=1009, compact=False)
+    share(2, 579, 1009)
+
+    Invocations with invalid parameter values raise exceptions.
+
+    >>> add([], 123)
+    Traceback (most recent call last):
+      ...
+    TypeError: arguments must be share objects or iterables of share objects
+    >>> add(modulus=123)
+    Traceback (most recent call last):
+      ...
+    TypeError: arguments must contain at least one share object
+    >>> add([share(2, 123, 1009)], 'abc')
+    Traceback (most recent call last):
+      ...
+    TypeError: arguments must be share objects or iterables of share objects
+    >>> add([*ss, *ts], modulus='abc')
+    Traceback (most recent call last):
+      ...
+    TypeError: modulus must be an integer
+    >>> add(shares(123, 3, 1223) + shares(123, 3, 1021))
+    Traceback (most recent call last):
+      ...
+    ValueError: all share objects must have the same modulus or no modulus
+    >>> add(shares(123, 3, 1223) + shares(123, 3, 1223), modulus=1021)
+    Traceback (most recent call last):
+      ...
+    ValueError: modulus in share objects does not match modulus argument
+    >>> add(shares(123, 3, 1223) + shares(123, 3, 1223), compact='abc')
+    Traceback (most recent call last):
+      ...
+    TypeError: compactness argument must be a boolean
+    >>> add(shares(123, 3, 1223, compact=True) + shares(123, 3, 1223, compact=True))
+    Traceback (most recent call last):
+      ...
+    ValueError: modulus is not found in share objects and is not provided as an argument
+    """
+    # pylint: disable=too-many-branches
+    message = 'arguments must be share objects or iterables of share objects'
+    iterables = False # Return output as a single share object by default.
+    inputs = [] # Store shares for reuse, even if iterables are supplied.
+    for argument in arguments:
+        if isinstance(argument, share):
+            inputs.append(argument)
+        elif isinstance(argument, Iterable):
+            iterables = True # Return even a single-share output as a sequence.
+            for item in argument:
+                if not isinstance(item, share):
+                    raise TypeError(message)
+                inputs.append(item)
+        else:
+            raise TypeError(message)
+
+    if len(inputs) == 0:
+        raise TypeError('arguments must contain at least one share object')
+
+    if modulus is not None and not isinstance(modulus, int):
+        raise TypeError('modulus must be an integer')
+
+    moduli = list({share_.modulus if len(share_) == 3 else None for share_ in inputs})
+    if len(moduli) > 1:
+        raise ValueError('all share objects must have the same modulus or no modulus')
+
+    if modulus is not None and moduli[0] is not None and modulus != moduli[0]:
+        raise ValueError(
+            'modulus in share objects does not match modulus argument'
+        )
+
+    if modulus is None and moduli[0] is None:
+        raise ValueError(
+            'modulus is not found in share objects and is not provided as an argument'
+        )
+
+    modulus = modulus or moduli[0]
+
+    if compact is not None and not isinstance(compact, bool):
+        raise TypeError('compactness argument must be a boolean')
+
+    index_to_value = {share_.index: 0 for share_ in inputs}
+    for share_ in inputs:
+        index_to_value[share_.index] += share_.value
+        index_to_value[share_.index] %= modulus
+
+    outputs = [
+        share(
+            *item,
+            *( # Exclude modulus if so instructed or if arguments had no modulus.
+                []
+                if compact is True or (compact is None and moduli[0] is None) else
+                [modulus]
+            )
+        )
+        for item in index_to_value.items()
+    ]
+
+    # Return one share object if the arguments were all individual share objects.
+    return outputs[0] if len(outputs) == 1 and not iterables else outputs
+
+def mul(
+        argument: Union[share, Iterable[share]],
+        scalar: int,
+        modulus: Optional[int] = None,
+        compact: bool = None
+    ) -> Union[share, Sequence[share]]:
+    """
+    Perform scalar multiplication of each secret share object in the supplied
+    iterable of secret share objects.
+
+    :param argument: Share object or iterable of share objects.
+    :param scalar: Integer scalar by which to multiply the share objects.
+    :param modulus: Modulus to use when performing scalar multiplication.
+    :param compact: Flag to indicate that the modulus should not be included
+        in the returned share objects.
+
+    As scalar multiplication is generally straightforward (and more) efficient
+    to perform without invoking a separate method (and all shares should not
+    usually be available to a single party), this method is primarily made
+    available to faciliate succinct testing.
+
+    >>> shares_ = shares(123, 3, modulus=1009)
+    >>> interpolate(mul(shares_, scalar=3, modulus=1009), modulus=1009)
+    369
+
+    This function can operate on both individual shares and on iterables
+    thereof. However, for convenience within scenarios involving only a single
+    share (such as when using this function to multiply a share that does not
+    contain a modulus component because :obj:`__mul__` cannot do so), a single
+    share is returned.
+
+    >>> mul(share(1, 123, 1009), scalar=2)
+    share(1, 246, 1009)
+    >>> mul(share(1, 123), scalar=2, modulus=1009)
+    share(1, 246)
+
+    Similarly, the returned shares do not contain a modulus component if all
+    shares in the arguments also do not contain a modulus component (although
+    an explicit ``compact`` argument value takes precedence over this).
+
+    >>> mul([share(1, 123), share(2, 234)], scalar=3, modulus=1009)
+    [share(1, 369), share(2, 702)]
+    >>> mul([share(1, 123, 1009), share(2, 234, 1009)], scalar=3, compact=True)
+    [share(1, 369), share(2, 702)]
+    >>> mul([share(1, 123), share(2, 234)], scalar=3, modulus=1009, compact=True)
+    [share(1, 369), share(2, 702)]
+    >>> mul([share(1, 123), share(2, 234)], scalar=3, modulus=1009, compact=False)
+    [share(1, 369, 1009), share(2, 702, 1009)]
+
+    Invocations with invalid parameter values raise exceptions.
+
+    >>> mul(False, 123)
+    Traceback (most recent call last):
+      ...
+    TypeError: argument must be share object or iterable of share objects
+    >>> mul([], 123)
+    Traceback (most recent call last):
+      ...
+    TypeError: iterable must contain one or more share objects
+    >>> mul(shares_, 'abc')
+    Traceback (most recent call last):
+      ...
+    TypeError: scalar must be an integer
+    >>> mul(shares_, 123, 'abc')
+    Traceback (most recent call last):
+      ...
+    TypeError: modulus must be an integer
+    >>> mul(shares(123, 3, 1223) + shares(123, 3, 1021), 123)
+    Traceback (most recent call last):
+      ...
+    ValueError: all share objects must have the same modulus
+    >>> mul(shares(123, 3, 1223), 123, 1021)
+    Traceback (most recent call last):
+      ...
+    ValueError: modulus in share objects does not match modulus argument
+    >>> mul(shares(123, 3, modulus=1009), 123, compact='abc')
+    Traceback (most recent call last):
+      ...
+    TypeError: compactness argument must be a boolean
+    >>> mul(shares(123, 3, modulus=1009, compact=True), 123)
+    Traceback (most recent call last):
+      ...
+    ValueError: modulus is not found in share objects and is not provided as an argument
+    """
+    if (not isinstance(argument, share)) and (not isinstance(argument, Iterable)):
+        raise TypeError(
+            'argument must be share object or iterable of share objects'
+        )
+
+    iterable = False # Return output as a single share object by default.
+    inputs = None
+    if isinstance(argument, share):
+        inputs = [argument]
+    else:
+        iterable = True # Return even a single-share output as a sequence.
+        inputs = list(argument) # Save iterable of items in argument for reuse.
+        if len(inputs) == 0 or not all (isinstance(item, share) for item in inputs):
+            raise TypeError('iterable must contain one or more share objects')
+
+    if not isinstance(scalar, int):
+        raise TypeError('scalar must be an integer')
+
+    if modulus is not None and not isinstance(modulus, int):
+        raise TypeError('modulus must be an integer')
+
+    moduli = list({share_.modulus if len(share_) == 3 else None for share_ in inputs})
+    if len(moduli) > 1:
+        raise ValueError('all share objects must have the same modulus')
+
+    if modulus is not None and moduli[0] is not None and modulus != moduli[0]:
+        raise ValueError(
+            'modulus in share objects does not match modulus argument'
+        )
+
+    if modulus is None and moduli[0] is None:
+        raise ValueError(
+            'modulus is not found in share objects and is not provided as an argument'
+        )
+
+    modulus = modulus or moduli[0]
+
+    if compact is not None and not isinstance(compact, bool):
+        raise TypeError('compactness argument must be a boolean')
+
+    outputs = [
+        share(
+            share_.index,
+            (share_.value * scalar) % modulus,
+            *( # Exclude modulus if so instructed or if arguments had no modulus.
+                []
+                if compact is True or (compact is None and moduli[0] is None) else
+                [modulus]
+            )
+        )
+        for share_ in inputs
+    ]
+
+    # Return one share object if the argument was a single share object.
+    return outputs[0] if len(outputs) == 1 and not iterable else outputs
+
 def interpolate(
         shares: Iterable[share], # pylint: disable=redefined-outer-name
         modulus: Optional[int] = None,
@@ -902,6 +1205,30 @@ def interpolate(
         modulus or moduli[0],
         (threshold or len(shares)) - 1
     )
+
+reconstruct: Callable[[Iterable[share], Optional[int], Optional[int]], int] = interpolate
+"""
+Alias for :obj:`interpolate`.
+
+>>> reconstruct(shares(5, 3, modulus=31))
+5
+"""
+
+recover: Callable[[Iterable[share], Optional[int], Optional[int]], int] = interpolate
+"""
+Alias for :obj:`interpolate`.
+
+>>> recover(shares(5, 3, modulus=31))
+5
+"""
+
+reveal: Callable[[Iterable[share], Optional[int], Optional[int]], int] = interpolate
+"""
+Alias for :obj:`interpolate`.
+
+>>> reveal(shares(5, 3, modulus=31))
+5
+"""
 
 if __name__ == '__main__': # pragma: no cover
     doctest.testmod()
