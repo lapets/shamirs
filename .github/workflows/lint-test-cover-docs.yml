@@ -12,9 +12,9 @@ jobs:
         python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
     name: Python ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Python.
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
@@ -28,7 +28,7 @@ jobs:
         run: |
           pip install -U .[coveralls]
           python -m coveralls --service=github # Submit to coveralls.
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.12'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
