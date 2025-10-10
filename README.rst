@@ -46,7 +46,14 @@ The library can be imported in the usual manner:
 
 Examples
 ^^^^^^^^
-The library provides functions for transforming a nonnegative integer plaintext into a number of secret shares and for reassembling those shares back into the plaintext they represent:
+
+.. |shares| replace:: ``shares``
+.. _shares: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.shares
+
+.. |interpolate| replace:: ``interpolate``
+.. _interpolate: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.interpolate
+
+The library provides the function |shares|_ for transforming a nonnegative integer plaintext into a number of secret shares and the function |interpolate|_ for reassembling those shares back into the plaintext they represent:
 
 .. code-block:: python
 
@@ -59,13 +66,57 @@ The library provides functions for transforming a nonnegative integer plaintext 
     >>> shamirs.interpolate(ss[5:15], threshold=10)
     456
 
+.. |share| replace:: ``share``
+.. _share: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.share
+
+.. |tuple| replace:: ``tuple``
+.. _tuple: https://docs.python.org/3/library/stdtypes.html#tuple
+
+Individual secret shares are represented using the |share|_ class. This class is derived from the |tuple|_ type and can have either two integer components (the *share index* and the *share value* that together determine the coordinates of a point on a polynomial curve) or three integer components (also including the modulus). One advantage of the two-component variant is that the memory footprint of |share|_ objects is reduced. These components can be accessed either directly via their indices or via named attributes:
+
+.. code-block:: python
+
+    >>> s = shamirs.share(1, 2, 3)
+    >>> s.index
+    1
+    >>> s.value
+    2
+    >>> s.modulus
+    3
+    >>> [s[0], s[1], s[2]]
+    [1, 2, 3]
+    >>> int(s) # Share value.
+    2
+
+The |shares|_ function accepts an optional boolean argument ``compact``, making it possible to create secret shares that do not include the modulus component:
+
+.. code-block:: python
+
+    >>> shamirs.shares(123, quantity=3, modulus=1009, compact=True)
+    [share(1, 649), share(2, 778), share(3, 510)]
+
+.. |special_mod| replace:: ``__mod__``
+.. _special_mod: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.share.__mod__
+
+It is also possible to extend a two-component |share|_ object with a modulus using the built-in modulus operator (thanks to the |special_mod|_ method):
+
+.. code-block:: python
+
+    >>> s = shamirs.share(1, 2)
+    >>> s % 3
+    share(1, 2, 3)
+    >>> t = shamirs.share(1, 2)
+    >>> t %= 3
+    >>> t
+    share(1, 2, 3)
+
 .. |special_add| replace:: ``__add__``
 .. _special_add: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.share.__add__
 
-.. |special_imul| replace:: ``__imul__``
-.. _special_imul: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.share.__imul__
+.. |special_mul| replace:: ``__mul__``
+.. _special_mul: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.share.__mul__
 
-Addition of shares and multiplication of shares by a scalar are both supported via special methods (such as |special_add|_ and |special_imul|_) corresponding to `Python's built-in addition and multiplication operators <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`__:
+Addition of |share|_ objects and multiplication of |share|_ objects by a scalar are both supported via special methods such as |special_add|_ and |special_mul|_ that correspond to `Python's built-in addition and multiplication operators <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`__:
 
 .. code-block:: python
 
@@ -79,6 +130,107 @@ Addition of shares and multiplication of shares by a scalar are both supported v
     >>> t *= 2
     >>> shamirs.interpolate([r, s, t])
     246
+
+When creating secret shares for a given plaintext, the modulus can be specified explicitly or omitted. When the modulus is omitted, the default is the 128-bit modulus ``(2 ** 127) - 1``:
+
+.. code-block:: python
+
+    >>> (r, s, t) = shamirs.shares(123, 3)
+    >>> r.modulus == (2 ** 127) - 1
+    True
+    >>> (r, s, t) = shamirs.shares(123, 3, modulus=1009)
+    >>> r.modulus
+    1009
+
+When using |interpolate|_ to reconstruct a plaintext from compact |share|_ objects, the modulus must be specified explicitly:
+
+.. code-block:: python
+
+    >>> (r, s, t) = shamirs.shares(123, 3, modulus=1009, compact=True)
+    >>> shamirs.interpolate([r, s, t])
+    Traceback (most recent call last):
+      ...
+    ValueError: modulus is not found in share objects and is not provided as an argument
+    >>> shamirs.interpolate([r, s, t], modulus=1009)
+    123
+
+The reconstruction threshold can also be specified explicitly or omitted. When it is omitted, the default threshold is the number of secret shares requested:
+
+.. code-block:: python
+
+    >>> (r, s, t) = shamirs.shares(123, 3)
+    >>> shamirs.interpolate([r, s, t]) # Three shares (at threshold).
+    123
+    >>> shamirs.interpolate([r, s]) # Two shares (below threshold).
+    119174221476707020724653887077758571505
+    >>> (r, s, t) = shamirs.shares(123, 3, threshold=2)
+    >>> shamirs.interpolate([r, s]) # Two shares (at threshold).
+    123
+    >>> shamirs.interpolate([s, t]) # Two shares (at threshold).
+    123
+    >>> shamirs.interpolate([r, t]) # Two shares (at threshold).
+    123
+
+The threshold argument is never required when invoking |interpolate|_, but it can reduce the number of arithmetic operations performed when reconstructing a plaintext:
+
+.. code-block:: python
+
+    >>> ss = shamirs.shares(123, 256, threshold=2)
+    >>> shamirs.interpolate(ss) # Slower.
+    123
+    >>> shamirs.interpolate(ss, threshold=2) # Faster.
+    123
+
+.. |add| replace:: ``add``
+.. _add: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.add
+
+.. |mul| replace:: ``mul``
+.. _mul: https://shamirs.readthedocs.io/en/4.0.0/_source/shamirs.html#shamirs.shamirs.mul
+
+To facilitate rapid prototyping and assembly of concise tests, the |add|_ and |mul|_ helper functions are provided for performing addition and scalar multiplication operations involving collections of shares:
+
+.. code-block:: python
+
+    >>> ss = shamirs.shares(123, 3)
+    >>> ts = shamirs.shares(456, 3)
+    >>> shamirs.interpolate(shamirs.add(ss, ts))
+    579
+    >>> shamirs.interpolate(shamirs.mul(ss, 2))
+    246
+
+These methods can also be used instead of built-in arithmetic operators when working with |share|_ objects that have no modulus component:
+
+.. code-block:: python
+
+    >>> (r, s, t) = shamirs.shares(123, 3, modulus=1009, compact=True)
+    >>> (u, v, w) = shamirs.shares(456, 3, modulus=1009, compact=True)
+    >>> shamirs.interpolate(
+    ...     [
+    ...         shamirs.add(r, u, modulus=1009),
+    ...         shamirs.add(s, v, modulus=1009),
+    ...         shamirs.add(t, w, modulus=1009)
+    ...     ],
+    ...     modulus=1009
+    ... )
+    579
+    >>> shamirs.interpolate(
+    ...     [
+    ...         shamirs.mul(r, 2, modulus=1009),
+    ...         shamirs.mul(s, 2, modulus=1009),
+    ...         shamirs.mul(t, 2, modulus=1009)
+    ...     ],
+    ...     modulus=1009
+    ... )
+    246
+
+In addition, conversion methods for bytes-like objects and Base64 strings are included to support encoding and decoding of |share|_ objects:
+
+.. code-block:: python
+
+    >>> shamirs.share.from_base64('AQAAAAIAAADkAPED').to_bytes().hex()
+    '0100000002000000e400f103'
+    >>> [s.to_base64() for s in shamirs.shares(123, 3, 1009)]
+    ['AQAAAAIAAADkAPED', 'AgAAAAIAAABRAfED', 'AwAAAAIAAADCAfED']
 
 Development
 -----------
